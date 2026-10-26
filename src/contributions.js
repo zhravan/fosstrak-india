@@ -9,7 +9,7 @@ const html = (body, status = 200, extra = {}) => new Response(`<!doctype html><h
 const getEvents = async (env) => { const rows = await env.EVENTS.get('events','json'); return Array.isArray(rows) ? rows.filter(v => v && typeof v === 'object') : []; };
 const putEvents = (env, rows) => env.EVENTS.put('events', JSON.stringify(rows));
 const field = (form, key, max = 1000) => String(form.get(key) || '').trim().slice(0,max);
-const audit = async (env, record) => env.EVENTS.put(`audit:${Date.now()}:${crypto.randomUUID()}`, JSON.stringify({ ...record, at: new Date().toISOString() }), { expirationTtl: 60 * 60 * 24 * 365 * 5 });
+export const writeAudit = async (env, record) => env.EVENTS.put(`audit:${Date.now()}:${crypto.randomUUID()}`, JSON.stringify({ ...record, at: new Date().toISOString() }), { expirationTtl: 60 * 60 * 24 * 365 * 5 });
 const sha256 = async (value) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))).map(v=>v.toString(16).padStart(2,'0')).join('');
 export const trustedScopes = async (token, env) => {
   if (!token || !env.FOSSTRAK_TRUSTED_CONTRIBUTORS) return [];
@@ -73,7 +73,7 @@ const createProposal = async (request, env, type, targetId = '') => {
     const reason = field(form,'reason',500);
     if (!reason) return html('<h1>Tell us what is wrong</h1><p>A short reason is required so moderators can investigate.</p>',400);
     const report = { id:crypto.randomUUID(), proposalType:'report', targetEventId:targetId, targetEventName:eventName(target), reportReason:reason, sourceUrl, contributorEmail:field(form,'contributorEmail',254), status:'pending', submittedAt:new Date().toISOString() };
-    events.push(report); await putEvents(env,events); await audit(env,{action:'report-submitted',targetId,summary:reason,actor:'community'}); 
+    events.push(report); await putEvents(env,events); await writeAudit(env,{action:'report-submitted',targetId,summary:reason,actor:'community'}); 
     return html(`<h1>Report received</h1><p class="notice">Thanks for helping keep the directory accurate. Your reference is <strong>${escapeHtml(report.id)}</strong>.</p><p><a href="/">Back to events</a></p>`,202);
   }
   const data = {
@@ -95,17 +95,17 @@ const createProposal = async (request, env, type, targetId = '') => {
     for(const key of allowed) if(Object.hasOwn(proposal.proposedChanges || {},key)) target[key]=proposal.proposedChanges[key];
     target.updatedAt=new Date().toISOString();
     await putEvents(env,events);
-    await audit(env,{action:'trusted-edit-published',targetId:target.id,summary:'Trusted contributor edit',actor:'trusted-contributor'});
+    await writeAudit(env,{action:'trusted-edit-published',targetId:target.id,summary:'Trusted contributor edit',actor:'trusted-contributor'});
     return html('<h1>Edit published</h1><p class="notice">Your verified contribution has been published. The change is recorded in the audit history.</p><p><a href="/">Return to events</a></p>',200);
   }
   if(type!=='edit' && scopes.includes('publish_events')) {
     proposal.status='published'; proposal.publishedAt=new Date().toISOString(); delete proposal.proposalType; delete proposal.proposedChanges; delete proposal.contributorEmail; delete proposal.contributorEmail;
     events.push(proposal); await putEvents(env,events);
-    await audit(env,{action:'trusted-event-published',targetId:proposal.id,summary:type,actor:'trusted-contributor'});
+    await writeAudit(env,{action:'trusted-event-published',targetId:proposal.id,summary:type,actor:'trusted-contributor'});
     return html('<h1>Event published</h1><p class="notice">Your verified contribution is live. The publication is recorded in the audit history.</p><p><a href="/">View events</a></p>',201);
   }
   if(type==='edit' && !Object.keys(proposal.proposedChanges || {}).length) return html('<h1>No changes detected</h1><p>Nothing differs from the current event. <a href="/">Return to the calendar</a>.</p>',400);
-  events.push(proposal); await putEvents(env,events); await audit(env,{action:'proposal-submitted',targetId:proposal.targetEventId || proposal.id,summary:type,actor:'community'});
+  events.push(proposal); await putEvents(env,events); await writeAudit(env,{action:'proposal-submitted',targetId:proposal.targetEventId || proposal.id,summary:type,actor:'community'});
   return html(`<h1>Contribution received</h1><p class="notice">Thank you. Your ${escapeHtml(type==='edit'?'edit suggestion':type==='new-edition'?'new-edition submission':'event submission')} is waiting for review.</p><p>Reference ID: <strong>${escapeHtml(proposal.id)}</strong></p><p>Save this reference to check its status later.</p><p><a class="button" href="/contributions/${encodeURIComponent(proposal.id)}">Check contribution status</a></p><p><a href="/">Return to FOSSTrak</a></p>`,202);
 };
 export async function handleContributionRoutes(request, env, url, existingEvents) {
@@ -136,7 +136,7 @@ export async function handleContributionRoutes(request, env, url, existingEvents
     } else proposal.status=action==='reject'?'rejected':'changes-requested';
     proposal.reviewedAt=new Date().toISOString(); proposal.reviewAction=action;
     await putEvents(env,rows);
-    await audit(env,{action:'proposal-'+action,targetId:proposal.targetEventId||proposal.id,summary:proposal.proposalType||'new-event',actor:'moderator'});
+    await writeAudit(env,{action:'proposal-'+action,targetId:proposal.targetEventId||proposal.id,summary:proposal.proposalType||'new-event',actor:'moderator'});
     return new Response(null,{status:303,headers:{Location:'/admin','Cache-Control':'no-store'}});
   }
   if(request.method==='GET' && path.startsWith('/contributions/')) {
