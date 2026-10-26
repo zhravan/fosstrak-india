@@ -1,3 +1,4 @@
+import { handleContributionRoutes } from './contributions.js';
 const escapeHtml = (value = '') => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 const safeUrl = (value) => { try { const url = new URL(String(value || '')); return ['http:', 'https:'].includes(url.protocol) ? url.href : ''; } catch { return ''; } };
 const eventName = (e) => e.commonName || e.name || e.fullName || 'Untitled FOSS event';
@@ -456,6 +457,7 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
         ${safeUrl(event.homepage) ? `<p><a href="${escapeHtml(safeUrl(event.homepage))}" target="_blank" rel="noopener noreferrer">Event website ↗</a></p>` : ''}
         ${safeUrl(event.registrationLink) ? `<p><a href="${escapeHtml(safeUrl(event.registrationLink))}" target="_blank" rel="noopener noreferrer">Registration ↗</a></p>` : ''}
         ${eventDate(event) && validDate(eventDate(event)) ? `<p><a href="/events/${encodeURIComponent(event.id || eventName(event))}.ics">Add to calendar (.ics)</a></p>` : ''}
+        ${event.id ? `<p class="event-contribute"><a href="/contribute/edit/${encodeURIComponent(event.id)}">Suggest an edit</a> · <a href="/events/${encodeURIComponent(event.id)}/new-edition">Add a new edition</a> · <a href="/report/${encodeURIComponent(event.id)}">Report an issue</a></p>` : ''}
       </article>
     `).join('') : `
       <div class="empty-state">
@@ -536,10 +538,13 @@ export default {
       return new Response('Event data is temporarily unavailable. Please try again later.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });
     }
 
+    const contributionResponse = await handleContributionRoutes(request, env, url, events);
+    if (contributionResponse) return contributionResponse;
+
     if (request.method === 'GET' && path.startsWith('/events/') && path.endsWith('.ics')) {
       const requestedId = decodeURIComponent(path.slice('/events/'.length, -'.ics'.length));
       const event = events.find(row => String(row.id || eventName(row)) === requestedId);
-      if (!event || event.status === 'pending' || event.status === 'rejected') {
+      if (!event || event.proposalType || ['pending', 'rejected', 'changes-requested'].includes(event.status)) {
         return new Response('Event not found', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
       }
       const startDate = eventDate(event);
@@ -604,9 +609,9 @@ export default {
       return new Response(HTML_TEMPLATE([],true,null,{},'Thanks! Your event has been submitted for community review.'),{status:202,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
     }
     if(request.method==='GET'&&path==='/submit') return new Response(HTML_TEMPLATE([],true),{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
-    if(request.method==='GET'&&path==='/api/events') return Response.json(events.filter(row=>row.status!=='pending'&&row.status!=='rejected'),{headers:{'Cache-Control':'public, max-age=60'}});
+    if(request.method==='GET'&&path==='/api/events') return Response.json(events.filter(row=>!row.proposalType&&!['pending','rejected','changes-requested'].includes(row.status)),{headers:{'Cache-Control':'public, max-age=60'}});
     if(request.method!=='GET') return new Response('Method not allowed',{status:405,headers:{Allow:'GET, POST','Content-Type':'text/plain; charset=utf-8'}});
-    const published=events.filter(row=>row.status!=='pending'&&row.status!=='rejected'); published.sort((a,b)=>eventDate(a).localeCompare(eventDate(b)));
+    const published=events.filter(row=>!row.proposalType&&!['pending','rejected','changes-requested'].includes(row.status)); published.sort((a,b)=>eventDate(a).localeCompare(eventDate(b)));
     return new Response(HTML_TEMPLATE(published),{headers:{
       'Content-Type':'text/html; charset=utf-8','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin',
       'Content-Security-Policy':"default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
