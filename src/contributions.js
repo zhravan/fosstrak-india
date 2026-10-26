@@ -11,7 +11,7 @@ const putEvents = (env, rows) => env.EVENTS.put('events', JSON.stringify(rows));
 const field = (form, key, max = 1000) => String(form.get(key) || '').trim().slice(0,max);
 const audit = async (env, record) => env.EVENTS.put(`audit:${Date.now()}:${crypto.randomUUID()}`, JSON.stringify({ ...record, at: new Date().toISOString() }), { expirationTtl: 60 * 60 * 24 * 365 * 5 });
 const sha256 = async (value) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))).map(v=>v.toString(16).padStart(2,'0')).join('');
-const trustedScopes = async (token, env) => {
+export const trustedScopes = async (token, env) => {
   if (!token || !env.FOSSTRAK_TRUSTED_CONTRIBUTORS) return [];
   try {
     const registry = JSON.parse(env.FOSSTRAK_TRUSTED_CONTRIBUTORS);
@@ -99,7 +99,7 @@ const createProposal = async (request, env, type, targetId = '') => {
     return html('<h1>Edit published</h1><p class="notice">Your verified contribution has been published. The change is recorded in the audit history.</p><p><a href="/">Return to events</a></p>',200);
   }
   if(type!=='edit' && scopes.includes('publish_events')) {
-    proposal.status='published'; proposal.publishedAt=new Date().toISOString(); delete proposal.proposalType; delete proposal.proposedChanges;
+    proposal.status='published'; proposal.publishedAt=new Date().toISOString(); delete proposal.proposalType; delete proposal.proposedChanges; delete proposal.contributorEmail; delete proposal.contributorEmail;
     events.push(proposal); await putEvents(env,events);
     await audit(env,{action:'trusted-event-published',targetId:proposal.id,summary:type,actor:'trusted-contributor'});
     return html('<h1>Event published</h1><p class="notice">Your verified contribution is live. The publication is recorded in the audit history.</p><p><a href="/">View events</a></p>',201);
