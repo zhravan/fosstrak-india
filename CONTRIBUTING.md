@@ -1,69 +1,54 @@
-## Contributing Guidelines
+# Contributing to FOSSTrak India
 
-Thank you for considering contributing to FossTrak! This document outlines the guidelines for contributing to this open-source project. By following these guidelines, you can help make this project better for everyone.
+FOSSTrak is community-maintained. Anyone can suggest an event, correct information, report an issue, or prepare a new edition. Public changes are reviewed unless a maintainer-issued trusted contributor token grants a narrowly scoped fast path.
 
-### Ways to Contribute
+## Web workflow
 
-You can contribute to FossTrak in various ways, including but not limited to:
+1. **Add an event:** use [/submit](https://fosstrak-india.zhravann.workers.dev/submit). Include the official event page and accurate dates.
+2. **Suggest an edit:** open an event and choose **Suggest an edit**. Only changed fields are proposed.
+3. **Add a new edition:** open the previous edition and choose **Add a new edition**. Confirm dates and links; previous details are only a starting point.
+4. **Report an issue:** use **Report an issue** on the event. Include evidence such as the organiser's cancellation notice.
+5. **Track a contribution:** save the reference ID shown after submission and open `/contributions/<reference-id>`.
 
-- Reporting bugs
-- Suggesting new features
-- Writing code enhancements or bug fixes
-- Improving documentation
-- Providing feedback
-- Helping others by answering questions
+A submission is not published until approved. Moderators can approve, request changes, or reject a proposal. Pending proposals and edit/report records are not part of the public event API or calendar feed.
 
-### Getting Started
+## Moderator setup
 
-To start contributing, follow these steps:
+Set a strong `FOSSTRAK_ADMIN_TOKEN` Worker secret. The `/admin` route uses HTTP Basic authentication; use the token as the password and any username. Do not put the token in a URL, issue, chat, or source file.
 
-1. **Fork** the repository on GitHub.
-2. **Clone** your forked repository to your local machine:
+```sh
+npx wrangler secret put FOSSTRAK_ADMIN_TOKEN
+```
 
-   ```bash
-   git clone https://github.com/your-username/fosstrak-india.git
-   ```
+The admin queue is available at `/admin`. Decisions and publication actions append audit records in the existing `EVENTS` KV namespace, retained for up to five years. KV is not transactional and concurrent submissions can race. Before high-volume use, migrate events, proposals and revisions to D1 with transactional writes.
 
-1. Navigate to the project directory:
+## Trusted contributors
 
-    ```bash
-    cd fosstrak-india
-    ```
+Trusted publishing is off by default. Configure `FOSSTRAK_TRUSTED_CONTRIBUTORS` as a JSON object mapping a token's SHA-256 hex digest to its scopes. Never store raw tokens in Worker variables or the repository.
 
-2. Install project dependencies:
+```json
+{
+  "REPLACE_WITH_SHA256_HEX_DIGEST": ["publish_events", "publish_edits"]
+}
+```
 
-    ```bash
-    npm install
-    ```
+Generate a digest locally with `printf %s 'YOUR_RANDOM_TOKEN' | sha256sum`, then configure the JSON as a Worker secret using `npx wrangler secret put FOSSTRAK_TRUSTED_CONTRIBUTORS`.
 
-3. Create a new branch for your contribution:
+- `publish_events`: publish new event submissions and new editions.
+- `publish_edits`: publish event edits.
 
-    ```bash
-    git checkout -b feature/new-feature
-    ```
+Issue high-entropy tokens only to trusted contributors, grant minimum scopes, and rotate tokens when access changes. Tokens are bearer credentials. Rate limiting through KV is best-effort and does not replace Cloudflare WAF/rate-limiting rules.
 
-4. Replace feature/new-feature with a descriptive branch name.
+## GitHub data contributions
 
-# Making Changes
+For a contribution that is easier to review as code, add one JSON file under `data/contributions/` and open a pull request. See [the data contribution guide](docs/data-contributions.md). CI validates each JSON record. Do not include personal information or secrets.
 
-Once you have set up the project on your local machine and created a new branch, you can start making changes:
+A merged data PR is a reviewed source contribution; it does not automatically write to production KV.
 
-- **Add FOSS events into platform**: Add Free and Open Source Software (FOSS) events to the platform by submitting a pull request (PR). This allows for showcasing all ongoing events within your organization or community, enabling FOSS enthusiasts to discover and participate in these events.
-- **Code**: Write or modify code to implement your contribution.
-- **Documentation**: Update project documentation to reflect your changes.
+## Data and licensing
 
-# Code Style
+Every web proposal must include an official event website or reliable announcement URL. Prefer sources maintained by organisers. Do not copy personal contact details unless intentionally published as the event's public contact. Verify rights before reusing third-party descriptions, images or logos.
 
-- Follow the existing code style and conventions.
-- Use meaningful variable and function names.
-- Comment your code when necessary.
-- Code Review
-- All contributions will go through a code review process. Feedback and changes may be requested before your contribution is merged.
+## Abuse and corrections
 
-# Reporting Issues
-
-If you encounter any problems or have suggestions for improvement, please open an issue on GitHub.
-
-# License
-
-By contributing to this project, you agree that your contributions will be licensed under the [MIT License](./LICENSE.md).
+Report spam or incorrect information through the event's **Report an issue** link. Maintainers should document decisions, request sources when facts are unclear, and use the audit history to explain corrections. Never publish private contributor emails or trusted tokens.
