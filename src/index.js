@@ -584,6 +584,7 @@ export default {
     try { events = await readEvents(env); } catch {
       return new Response('Event data is temporarily unavailable. Please try again later.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });
     }
+
     if (request.method === 'GET' && path.startsWith('/events/') && path.endsWith('.ics')) {
       const requestedId = decodeURIComponent(path.slice('/events/'.length, -'.ics'.length));
       const event = events.find(row => String(row.id || eventName(row)) === requestedId);
