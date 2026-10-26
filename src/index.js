@@ -545,7 +545,7 @@ export default {
     if (request.method === 'GET' && path.startsWith('/events/') && path.endsWith('.ics')) {
       const requestedId = decodeURIComponent(path.slice('/events/'.length, -'.ics'.length));
       const event = events.find(row => String(row.id || eventName(row)) === requestedId);
-      if (!event || event.proposalType || ['pending', 'rejected', 'changes-requested'].includes(event.status)) {
+      if (!event || event.proposalType || ['pending', 'rejected', 'changes-requested', 'archived'].includes(event.status)) {
         return new Response('Event not found', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
       }
       const startDate = eventDate(event);
@@ -608,11 +608,11 @@ export default {
       const duplicate=events.some(row=>!row.proposalType&&row.status!=='rejected'&&String(row.commonName||row.name||'').trim().toLocaleLowerCase('en-IN')===event.commonName.toLocaleLowerCase('en-IN')&&String(row.startDate||row.date||'')===event.startDate);
       if(duplicate) return new Response(HTML_TEMPLATE([],true,'An event with this name and start date already exists.',event),{status:409,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
       events.push(event);
-      try { await env.EVENTS.put('events',JSON.stringify(events)); await writeAudit(env,{action:scopes.includes('publish_events')?'trusted-event-published':'proposal-submitted',targetId:event.id,summary:'new-event',actor:scopes.includes('publish_events')?'trusted-contributor':'community'}); } catch { return new Response('We could not save your submission. Please try again later.',{status:503,headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}}); }
+      try { await env.EVENTS.put('events',JSON.stringify(events)); await writeAudit(env,{action:scopes.includes('publish_events')?'trusted-event-published':'proposal-submitted',targetId:event.id,summary:'new-event',actor:scopes.includes('publish_events')?'trusted-contributor':'community',...(scopes.includes('publish_events')?{after:JSON.parse(JSON.stringify(event))}:{})}); } catch { return new Response('We could not save your submission. Please try again later.',{status:503,headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}}); }
       return new Response(HTML_TEMPLATE([],true,null,{},scopes.includes('publish_events')?'Your trusted-contributor submission is published.':'Thanks! Your event has been submitted for community review.'),{status:scopes.includes('publish_events')?201:202,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
     }
     if(request.method==='GET'&&path==='/submit') return new Response(HTML_TEMPLATE([],true),{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
-    if(request.method==='GET'&&path==='/api/events') return Response.json(events.filter(row=>!row.proposalType&&!['pending','rejected','changes-requested'].includes(row.status)),{headers:{'Cache-Control':'public, max-age=60'}});
+    if(request.method==='GET'&&path==='/api/events') return Response.json(events.filter(row=>!row.proposalType&&!['pending','rejected','changes-requested','archived'].includes(row.status)),{headers:{'Cache-Control':'public, max-age=60'}});
     if(request.method!=='GET') return new Response('Method not allowed',{status:405,headers:{Allow:'GET, POST','Content-Type':'text/plain; charset=utf-8'}});
     const published=events.filter(row=>!row.proposalType&&!['pending','rejected','changes-requested'].includes(row.status)); published.sort((a,b)=>eventDate(a).localeCompare(eventDate(b)));
     return new Response(HTML_TEMPLATE(published),{headers:{
