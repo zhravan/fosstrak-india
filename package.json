@@ -6,7 +6,8 @@
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
     "start": "wrangler dev",
-    "test": "vitest"
+    "test": "vitest",
+    "validate:contributions": "node scripts/validate-contributions.mjs"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.6.4",
