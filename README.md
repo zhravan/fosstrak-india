@@ -74,6 +74,15 @@ See the [Cloudflare Workers documentation](https://developers.cloudflare.com/wor
 - `/api/events` — published events in JSON
 - `/healthz` — health check
 - `/events/<event-id>.ics` — calendar download for a published event with a valid date
+- `/contribute/edit/<event-id>` — suggest an edit to a published event
+- `/events/<event-id>/new-edition` — propose a new edition based on a previous event
+- `/report/<event-id>` — report incorrect or outdated event information
+- `/contributions/<reference-id>` — check a contribution's review status; append `/revise` when changes are requested
+- `/admin` — authenticated moderation queue, review history, and rollback controls
+- `/api/events.csv` — CSV export of published events
+- `/api/schema` — event schema and contribution workflow metadata
+
+Set the `FOSSTRAK_ADMIN_TOKEN` Worker secret before using moderation. Optional trusted contributor permissions are configured using the `FOSSTRAK_TRUSTED_CONTRIBUTORS` secret; see [CONTRIBUTING.md](./CONTRIBUTING.md) for setup and scopes. Public submissions remain pending until approved unless a trusted token explicitly grants the relevant publishing scope.
 
 Submissions are pending review by design. Do not expose a moderation endpoint without proper authentication and authorization.
 
