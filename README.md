@@ -17,6 +17,7 @@ FOSSTrak India is an open-source, community-driven directory for discovering FOS
 - Cloudflare Workers KV — event data
 - Wrangler — local development and deployment
 - Vitest with Cloudflare's Workers test pool — automated tests
+- GitHub Actions — pull-request checks and production deployment
 
 ## Prerequisites
 
@@ -32,36 +33,39 @@ cd fosstrak-india
 npm install
 ```
 
-Create a local Wrangler config from the example and replace the placeholder KV namespace ID with a namespace you own:
+The checked-in `wrangler.jsonc` points to the FOSSTrak deployment's KV namespace. For a separate Cloudflare account, copy `wrangler-example.jsonc` to `wrangler.jsonc` and replace the placeholder namespace ID with a namespace you own.
 
-```sh
-cp wrangler-example.jsonc wrangler.jsonc
-```
-
-Then start the local Worker:
+Start the Worker locally:
 
 ```sh
 npm start
 ```
 
-Run tests with:
+Run tests:
 
 ```sh
-npm test
+npm test -- --run
 ```
 
-## Deploy to Cloudflare Workers
+## Production deployment
 
-1. Create a Workers KV namespace for event data in your Cloudflare account.
-2. Copy `wrangler-example.jsonc` to `wrangler.jsonc` and set the `EVENTS` binding's `id` to your namespace ID. Keep real account-specific configuration out of the example file.
-3. Authenticate Wrangler with `npx wrangler login`, or configure a scoped Cloudflare API token in your CI environment.
-4. Deploy with:
+Production deploys are handled by GitHub Actions after a successful test run on `main`. Pull requests run the tests and validate the Worker bundle; they do not deploy.
+
+Configure these **GitHub repository Actions secrets** before merging a deployment change:
+
+- `CLOUDFLARE_ACCOUNT_ID` — Cloudflare account identifier
+- `CLOUDFLARE_API_TOKEN` — a scoped API token that can edit Workers scripts and access the required account resources
+
+The production Worker configuration binds `EVENTS` to the `fosstrak-india-events` KV namespace. The namespace ID is an identifier, not an API credential; never commit API tokens or other secrets.
+
+For a manual deployment, authenticate Wrangler and run:
 
 ```sh
+npx wrangler login
 npm run deploy
 ```
 
-For current setup details, see the [Cloudflare Workers documentation](https://developers.cloudflare.com/workers/) and [Workers KV documentation](https://developers.cloudflare.com/kv/).
+See the [Cloudflare Workers documentation](https://developers.cloudflare.com/workers/) and [Workers KV documentation](https://developers.cloudflare.com/kv/).
 
 ## Application endpoints
 
@@ -75,7 +79,7 @@ Submissions are pending review by design. Do not expose a moderation endpoint wi
 
 ## Contributing
 
-Contributions are welcome. Please open an issue to discuss larger changes, and submit a pull request with focused changes and tests. Never commit Cloudflare account IDs, namespace IDs tied to private infrastructure, API tokens, or other secrets.
+Contributions are welcome. Please open an issue to discuss larger changes, and submit a pull request with focused changes and tests. Never commit Cloudflare API tokens or other secrets.
 
 ## License
 
