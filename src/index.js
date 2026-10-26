@@ -504,6 +504,7 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
         <div class="event-tags"><span class="tag">${escapeHtml(eventType(event))}</span>${eventTags(event).map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}</div>
         ${safeUrl(event.homepage) ? `<p><a href="${escapeHtml(safeUrl(event.homepage))}" target="_blank" rel="noopener noreferrer">Event website ↗</a></p>` : ''}
         ${safeUrl(event.registrationLink) ? `<p><a href="${escapeHtml(safeUrl(event.registrationLink))}" target="_blank" rel="noopener noreferrer">Registration ↗</a></p>` : ''}
+        ${eventDate(event) && validDate(eventDate(event)) ? `<p><a href="/events/${encodeURIComponent(event.id || eventName(event))}.ics">Add to calendar (.ics)</a></p>` : ''}
       </article>
     `).join('') : `
       <div class="empty-state">
