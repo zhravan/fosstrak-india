@@ -593,7 +593,7 @@ export default {
         'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//FOSSTrak India//Events//EN',
         'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
         'UID:' + escapeIcal(event.id || requestedId) + '@fosstrak-india',
-        'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').replace(/\\.\\d{3}Z$/, 'Z'),
+        'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z'),
         'DTSTART;VALUE=DATE:' + icalDate(startDate),
         'DTEND;VALUE=DATE:' + icalDate(endDate > startDate ? new Date(Date.parse(endDate + 'T00:00:00Z') + 86400000).toISOString().slice(0, 10) : new Date(Date.parse(startDate + 'T00:00:00Z') + 86400000).toISOString().slice(0, 10)),
         'SUMMARY:' + escapeIcal(eventName(event)),
@@ -601,7 +601,7 @@ export default {
         'LOCATION:' + escapeIcal(eventLocation(event)),
         safeUrl(event.homepage) ? 'URL:' + safeUrl(event.homepage) : '',
         'END:VEVENT', 'END:VCALENDAR', ''
-      ].filter((line) => line !== '').join('\\r\\n');
+      ].filter((line) => line !== '').join('\r\n');
       return new Response(calendar, {
         headers: {
           'Content-Type': 'text/calendar; charset=utf-8',
