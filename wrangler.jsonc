@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "fosstrak-india",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-26",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "EVENTS",
+      "id": "b79d383bd5944f62b448ce2d44ff68bc"
+    }
+  ]
+}
