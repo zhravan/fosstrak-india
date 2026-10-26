@@ -17,7 +17,7 @@
 	"kv_namespaces": [
 		{
 			"binding": "EVENTS",
-			"id": "copy_id"
+			"id": "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
 		}
 	]
 	// "rules": [
