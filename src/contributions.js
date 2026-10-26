@@ -10,7 +10,27 @@ const getEvents = async (env) => { const rows = await env.EVENTS.get('events','j
 const putEvents = (env, rows) => env.EVENTS.put('events', JSON.stringify(rows));
 const field = (form, key, max = 1000) => String(form.get(key) || '').trim().slice(0,max);
 const audit = async (env, record) => env.EVENTS.put(`audit:${Date.now()}:${crypto.randomUUID()}`, JSON.stringify({ ...record, at: new Date().toISOString() }), { expirationTtl: 60 * 60 * 24 * 365 * 5 });
-const formPage = (title, action, event = {}, note = '') => html(`<h1>${escapeHtml(title)}</h1><p>Help keep the directory accurate. Link to an official source where possible. Proposed changes are reviewed before publication.</p>${note ? `<p class="notice">${escapeHtml(note)}</p>` : ''}<form method="post" action="${escapeHtml(action)}"><div class="grid"><div class="field"><label for="commonName">Event name *</label><input id="commonName" name="commonName" maxlength="100" required value="${escapeHtml(event.commonName || event.name || '')}"></div><div class="field"><label for="fullName">Full event name</label><input id="fullName" name="fullName" maxlength="160" value="${escapeHtml(event.fullName || '')}"></div><div class="field"><label for="homepage">Official event website *</label><input id="homepage" name="homepage" type="url" required value="${escapeHtml(event.homepage || '')}" placeholder="https://"></div><div class="field"><label for="registrationLink">Registration link</label><input id="registrationLink" name="registrationLink" type="url" value="${escapeHtml(event.registrationLink || '')}" placeholder="https://"></div><div class="field"><label for="startDate">Start date *</label><input id="startDate" name="startDate" type="date" required value="${escapeHtml(event.startDate || '')}"></div><div class="field"><label for="endDate">End date *</label><input id="endDate" name="endDate" type="date" required value="${escapeHtml(event.endDate || event.startDate || '')}"></div><div class="field"><label for="city">City / online</label><input id="city" name="city" value="${escapeHtml(event.city || '')}"></div><div class="field"><label for="state">State</label><input id="state" name="state" value="${escapeHtml(event.state || '')}"></div><div class="field wide"><label for="venue">Venue</label><input id="venue" name="venue" value="${escapeHtml(event.venue || '')}"></div><div class="field wide"><label for="selfDescription">Description *</label><textarea id="selfDescription" name="selfDescription" maxlength="5000" required>${escapeHtml(event.selfDescription || event.description || '')}</textarea></div><div class="field wide"><label for="sourceUrl">Source / announcement URL *</label><input id="sourceUrl" name="sourceUrl" type="url" required value="${escapeHtml(event.sourceUrl || event.homepage || '')}" placeholder="Link that confirms these details"></div><div class="field"><label for="contributorName">Your name (optional)</label><input id="contributorName" name="contributorName" maxlength="100"></div><div class="field"><label for="contributorEmail">Email for follow-up (optional)</label><input id="contributorEmail" name="contributorEmail" type="email" maxlength="254"></div></div><p><button type="submit">Send for review</button></p></form>`, 200);
+const sha256 = async (value) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))).map(v=>v.toString(16).padStart(2,'0')).join('');
+const trustedScopes = async (token, env) => {
+  if (!token || !env.FOSSTRAK_TRUSTED_CONTRIBUTORS) return [];
+  try {
+    const registry = JSON.parse(env.FOSSTRAK_TRUSTED_CONTRIBUTORS);
+    const scopes = registry[await sha256(token)];
+    return Array.isArray(scopes) ? scopes.filter(v=>['publish_events','publish_edits'].includes(v)) : [];
+  } catch { return []; }
+};
+const rateLimited = async (request, env) => {
+  if (!env.EVENTS) return false;
+  const ip = request.headers.get('CF-Connecting-IP');
+  if (!ip) return false;
+  const hour = Math.floor(Date.now()/3600000);
+  const key = 'rate:' + await sha256(ip + ':' + hour);
+  const count = Number(await env.EVENTS.get(key) || 0);
+  if (count >= 12) return true;
+  await env.EVENTS.put(key,String(count+1),{expirationTtl:3600});
+  return false;
+};
+const formPage = (title, action, event = {}, note = '') => html(`<h1>${escapeHtml(title)}</h1><p>Help keep the directory accurate. Link to an official source where possible. Proposed changes are reviewed before publication.</p>${note ? `<p class="notice">${escapeHtml(note)}</p>` : ''}<form method="post" action="${escapeHtml(action)}"><div class="grid"><div class="field"><label for="commonName">Event name *</label><input id="commonName" name="commonName" maxlength="100" required value="${escapeHtml(event.commonName || event.name || '')}"></div><div class="field"><label for="fullName">Full event name</label><input id="fullName" name="fullName" maxlength="160" value="${escapeHtml(event.fullName || '')}"></div><div class="field"><label for="homepage">Official event website *</label><input id="homepage" name="homepage" type="url" required value="${escapeHtml(event.homepage || '')}" placeholder="https://"></div><div class="field"><label for="registrationLink">Registration link</label><input id="registrationLink" name="registrationLink" type="url" value="${escapeHtml(event.registrationLink || '')}" placeholder="https://"></div><div class="field"><label for="startDate">Start date *</label><input id="startDate" name="startDate" type="date" required value="${escapeHtml(event.startDate || '')}"></div><div class="field"><label for="endDate">End date *</label><input id="endDate" name="endDate" type="date" required value="${escapeHtml(event.endDate || event.startDate || '')}"></div><div class="field"><label for="city">City / online</label><input id="city" name="city" value="${escapeHtml(event.city || '')}"></div><div class="field"><label for="state">State</label><input id="state" name="state" value="${escapeHtml(event.state || '')}"></div><div class="field wide"><label for="venue">Venue</label><input id="venue" name="venue" value="${escapeHtml(event.venue || '')}"></div><div class="field wide"><label for="selfDescription">Description *</label><textarea id="selfDescription" name="selfDescription" maxlength="5000" required>${escapeHtml(event.selfDescription || event.description || '')}</textarea></div><div class="field wide"><label for="sourceUrl">Source / announcement URL *</label><input id="sourceUrl" name="sourceUrl" type="url" required value="${escapeHtml(event.sourceUrl || event.homepage || '')}" placeholder="Link that confirms these details"></div><div class="field"><label for="contributorName">Your name (optional)</label><input id="contributorName" name="contributorName" maxlength="100"></div><div class="field"><label for="contributorEmail">Email for follow-up (optional)</label><input id="contributorEmail" name="contributorEmail" type="email" maxlength="254"></div><div class="field wide"><label for="trustedToken">Trusted contributor token (optional)</label><input id="trustedToken" name="trustedToken" type="password" autocomplete="off"><small>Only use a token issued by the FOSSTrak maintainers. It is never stored with your contribution.</small></div></div><p><button type="submit">Send for review</button></p></form>`, 200);
 const basicAuth = (request, env) => {
   if (!env.FOSSTRAK_ADMIN_TOKEN) return { ok:false, missing:true };
   const header = request.headers.get('Authorization') || '';
@@ -68,13 +88,30 @@ const createProposal = async (request, env, type, targetId = '') => {
   if(errors.length) return html(`<h1>Check your submission</h1><p class="error">${escapeHtml(errors.join(' '))}</p><p><a href="javascript:history.back()">Go back and correct it</a></p>`,400);
   const duplicate = events.some(e => publicEvent(e) && eventName(e).trim().toLowerCase()===data.commonName.toLowerCase() && eventDate(e)===data.startDate);
   if(type!=='edit' && duplicate) return html('<h1>Possible duplicate</h1><p>An event with the same name and start date is already listed. Open the existing event and suggest an edit or contact a moderator.</p><p><a href="/">Browse events</a></p>',409);
+  const scopes = await trustedScopes(field(form,'trustedToken',500),env);
   const proposal = { ...data, id:crypto.randomUUID(), proposalType:type, status:'pending', submittedAt:new Date().toISOString(), ...(target ? {targetEventId:target.id,targetEventName:eventName(target),proposedChanges:Object.fromEntries(Object.entries(data).filter(([key,value])=>value!=='' && value!==target[key]))} : {}), ...(type==='new-edition' ? {basedOn:targetId} : {}) };
+  if(type==='edit' && scopes.includes('publish_edits')) {
+    const allowed=['commonName','fullName','homepage','registrationLink','startDate','endDate','city','state','venue','selfDescription'];
+    for(const key of allowed) if(Object.hasOwn(proposal.proposedChanges || {},key)) target[key]=proposal.proposedChanges[key];
+    target.updatedAt=new Date().toISOString();
+    await putEvents(env,events);
+    await audit(env,{action:'trusted-edit-published',targetId:target.id,summary:'Trusted contributor edit',actor:'trusted-contributor'});
+    return html('<h1>Edit published</h1><p class="notice">Your verified contribution has been published. The change is recorded in the audit history.</p><p><a href="/">Return to events</a></p>',200);
+  }
+  if(type!=='edit' && scopes.includes('publish_events')) {
+    proposal.status='published'; proposal.publishedAt=new Date().toISOString(); delete proposal.proposalType; delete proposal.proposedChanges;
+    events.push(proposal); await putEvents(env,events);
+    await audit(env,{action:'trusted-event-published',targetId:proposal.id,summary:type,actor:'trusted-contributor'});
+    return html('<h1>Event published</h1><p class="notice">Your verified contribution is live. The publication is recorded in the audit history.</p><p><a href="/">View events</a></p>',201);
+  }
   if(type==='edit' && !Object.keys(proposal.proposedChanges || {}).length) return html('<h1>No changes detected</h1><p>Nothing differs from the current event. <a href="/">Return to the calendar</a>.</p>',400);
   events.push(proposal); await putEvents(env,events); await audit(env,{action:'proposal-submitted',targetId:proposal.targetEventId || proposal.id,summary:type,actor:'community'});
   return html(`<h1>Contribution received</h1><p class="notice">Thank you. Your ${escapeHtml(type==='edit'?'edit suggestion':type==='new-edition'?'new-edition submission':'event submission')} is waiting for review.</p><p>Reference ID: <strong>${escapeHtml(proposal.id)}</strong></p><p>Save this reference to check its status later.</p><p><a class="button" href="/contributions/${encodeURIComponent(proposal.id)}">Check contribution status</a></p><p><a href="/">Return to FOSSTrak</a></p>`,202);
 };
 export async function handleContributionRoutes(request, env, url, existingEvents) {
   const path = url.pathname;
+  if(request.method==='POST' && path==='/submit' && await rateLimited(request,env)) return html('<h1>Slow down a moment</h1><p>Too many contributions from this connection. Please try again in about an hour.</p>',429,{'Retry-After':'3600'});
+  if(request.method==='POST' && (path==='/report' || path.startsWith('/report/') || path.startsWith('/contribute/edit/') || (path.startsWith('/events/') && path.endsWith('/new-edition'))) && await rateLimited(request,env)) return html('<h1>Slow down a moment</h1><p>Too many contributions from this connection. Please try again in about an hour.</p>',429,{'Retry-After':'3600'});
   if (request.method==='GET' && path==='/admin') {
     const denied=adminGate(request,env); if(denied) return denied;
     try { return await adminPage(env); } catch { return html('<h1>Moderation unavailable</h1><p>Could not read the queue. Please retry.</p>',503); }
