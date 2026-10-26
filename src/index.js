@@ -483,6 +483,7 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
     <p>Made with love for FOSS in India 🇮🇳</p>
     <p>FOSSTrak India · Open source, community-driven, India-focused</p>
     <p>Powered by Open Source &amp; Cloudflare Workers</p>
+    <p>Open data: <a href="/api/events">JSON</a> · <a href="/api/events.csv">CSV</a> · <a href="/api/schema">API schema</a> · <a href="https://github.com/zhravan/fosstrak-india/blob/main/CONTRIBUTING.md">Contribute on GitHub</a></p>
   </footer>
   <script>
     document.querySelectorAll('.nav-link').forEach(link => {

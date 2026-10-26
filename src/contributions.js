@@ -60,7 +60,7 @@ const adminPage = async (env) => {
     }
   }
   audits.sort((a,b)=>String(b.at).localeCompare(String(a.at)));
-  return html(`<h1>Contribution review</h1><p>Review proposals before they affect the public calendar. New events, edits and reports share one queue.</p><h2>Waiting for review (${pending.length})</h2>${pending.length ? pending.map(item => `<article class="item"><h3>${escapeHtml(eventName(item))}</h3><p class="meta">${escapeHtml(item.proposalType || 'new-event')} · ${escapeHtml(item.submittedAt || '')} · ID ${escapeHtml(item.id)}</p><p>${escapeHtml(item.proposalType === 'edit' ? 'Suggested edit for ' + (item.targetEventName || item.targetEventId) : item.proposalType === 'report' ? 'Report: ' + (item.reportReason || '') : item.basedOn ? 'New edition based on ' + item.basedOn : 'New event submission')}</p>${item.sourceUrl ? `<p><a href="${escapeHtml(safeUrl(item.sourceUrl))}" rel="noopener noreferrer" target="_blank">Open source ↗</a></p>` : item.homepage ? `<p><a href="${escapeHtml(safeUrl(item.homepage))}" rel="noopener noreferrer" target="_blank">Open event website ↗</a></p>` : ''}<details><summary>Proposal data</summary><pre>${escapeHtml(JSON.stringify(item.proposedChanges || item,null,2))}</pre></details><div class="actions">${['approve','request-changes','reject'].map(action=>`<form method="post" action="/admin/action"><input type="hidden" name="id" value="${escapeHtml(item.id)}"><input type="hidden" name="action" value="${action}"><button class="${action==='approve'?'':'secondary'}" type="submit">${action==='approve'?'Approve':action==='request-changes'?'Request changes':'Reject'}</button></form>`).join('')}</div></article>`).join('') : '<p class="notice">Nothing waiting for review.</p>'}<h2>Recent history</h2>${audits.length ? audits.map(item=>`<article class="item"><strong>${escapeHtml(item.action || 'Change')}</strong><p class="meta">${escapeHtml(item.at || '')} · ${escapeHtml(item.actor || 'moderator')} · ${escapeHtml(item.targetId || '')}</p><p>${escapeHtml(item.summary || '')}</p>${item.before || item.after ? `<form method="post" action="/admin/rollback"><input type="hidden" name="key" value="${escapeHtml(item._key || '')}"><button class="secondary" type="submit">Revert this change</button></form>` : ''}</article>`).join('') : '<p>No audit entries yet.</p>'}`,200);
+  return html(`<h1>Contribution review</h1><p>Review proposals before they affect the public calendar. New events, edits and reports share one queue.</p><h2>Waiting for review (${pending.length})</h2>${pending.length ? pending.map(item => `<article class="item"><h3>${escapeHtml(eventName(item))}</h3><p class="meta">${escapeHtml(item.proposalType || 'new-event')} · ${escapeHtml(item.submittedAt || '')} · ID ${escapeHtml(item.id)}</p><p>${escapeHtml(item.proposalType === 'edit' ? 'Suggested edit for ' + (item.targetEventName || item.targetEventId) : item.proposalType === 'report' ? 'Report: ' + (item.reportReason || '') : item.basedOn ? 'New edition based on ' + item.basedOn : 'New event submission')}</p>${item.sourceUrl ? `<p><a href="${escapeHtml(safeUrl(item.sourceUrl))}" rel="noopener noreferrer" target="_blank">Open source ↗</a></p>` : item.homepage ? `<p><a href="${escapeHtml(safeUrl(item.homepage))}" rel="noopener noreferrer" target="_blank">Open event website ↗</a></p>` : ''}<details><summary>Proposal data</summary><pre>${escapeHtml(JSON.stringify(item.proposedChanges || item,null,2))}</pre></details><div class="actions">${['approve','request-changes','reject'].map(action=>`<form method="post" action="/admin/action"><input type="hidden" name="id" value="${escapeHtml(item.id)}"><input type="hidden" name="action" value="${action}">${action==='request-changes'?'<label>What should the contributor change?<textarea name="reviewerNote" maxlength="1000" required></textarea></label>':''}<button class="${action==='approve'?'':'secondary'}" type="submit">${action==='approve'?'Approve':action==='request-changes'?'Request changes':'Reject'}</button></form>`).join('')}</div></article>`).join('') : '<p class="notice">Nothing waiting for review.</p>'}<h2>Recent history</h2>${audits.length ? audits.map(item=>`<article class="item"><strong>${escapeHtml(item.action || 'Change')}</strong><p class="meta">${escapeHtml(item.at || '')} · ${escapeHtml(item.actor || 'moderator')} · ${escapeHtml(item.targetId || '')}</p><p>${escapeHtml(item.summary || '')}</p>${item.before || item.after ? `<form method="post" action="/admin/rollback"><input type="hidden" name="key" value="${escapeHtml(item._key || '')}"><button class="secondary" type="submit">Revert this change</button></form>` : ''}</article>`).join('') : '<p>No audit entries yet.</p>'}`,200);
 };
 const createProposal = async (request, env, type, targetId = '') => {
   const form = await request.formData();
@@ -89,7 +89,8 @@ const createProposal = async (request, env, type, targetId = '') => {
   const duplicate = events.some(e => publicEvent(e) && eventName(e).trim().toLowerCase()===data.commonName.toLowerCase() && eventDate(e)===data.startDate);
   if(type!=='edit' && duplicate) return html('<h1>Possible duplicate</h1><p>An event with the same name and start date is already listed. Open the existing event and suggest an edit or contact a moderator.</p><p><a href="/">Browse events</a></p>',409);
   const scopes = await trustedScopes(field(form,'trustedToken',500),env);
-  const proposal = { ...data, id:crypto.randomUUID(), proposalType:type, status:'pending', submittedAt:new Date().toISOString(), ...(target ? {targetEventId:target.id,targetEventName:eventName(target),proposedChanges:Object.fromEntries(Object.entries(data).filter(([key,value])=>value!=='' && value!==target[key]))} : {}), ...(type==='new-edition' ? {basedOn:targetId} : {}) };
+  const proposal = { ...data, id:crypto.randomUUID(), proposalType:type, status:'pending', submittedAt:new Date().toISOString(), ...(target ? {targetEventId:target.id,targetEventName:eventName(target),proposedChanges:Object.fromEntries(['commonName','fullName','homepage','registrationLink','startDate','endDate','city','state','venue','selfDescription'].filter(key=>data[key]!==''&&data[key]!==target[key]).map(key=>[key,data[key]]))} : {}), ...(type==='new-edition' ? {basedOn:targetId} : {}) };
+  if(type==='edit' && !Object.keys(proposal.proposedChanges || {}).length) return html('<h1>No changes detected</h1><p>Nothing differs from the current event. <a href="/">Return to the calendar</a>.</p>',400);
   if(type==='edit' && scopes.includes('publish_edits')) {
     const before = JSON.parse(JSON.stringify(target));
     const allowed=['commonName','fullName','homepage','registrationLink','startDate','endDate','city','state','venue','selfDescription'];
@@ -105,7 +106,7 @@ const createProposal = async (request, env, type, targetId = '') => {
     await writeAudit(env,{action:'trusted-event-published',targetId:proposal.id,summary:type,actor:'trusted-contributor',after:JSON.parse(JSON.stringify(proposal))});
     return html('<h1>Event published</h1><p class="notice">Your verified contribution is live. The publication is recorded in the audit history.</p><p><a href="/">View events</a></p>',201);
   }
-  if(type==='edit' && !Object.keys(proposal.proposedChanges || {}).length) return html('<h1>No changes detected</h1><p>Nothing differs from the current event. <a href="/">Return to the calendar</a>.</p>',400);
+
   events.push(proposal); await putEvents(env,events); await writeAudit(env,{action:'proposal-submitted',targetId:proposal.targetEventId || proposal.id,summary:type,actor:'community'});
   return html(`<h1>Contribution received</h1><p class="notice">Thank you. Your ${escapeHtml(type==='edit'?'edit suggestion':type==='new-edition'?'new-edition submission':'event submission')} is waiting for review.</p><p>Reference ID: <strong>${escapeHtml(proposal.id)}</strong></p><p>Save this reference to check its status later.</p><p><a class="button" href="/contributions/${encodeURIComponent(proposal.id)}">Check contribution status</a></p><p><a href="/">Return to FOSSTrak</a></p>`,202);
 };
@@ -121,10 +122,11 @@ export async function handleContributionRoutes(request, env, url, existingEvents
     const denied=adminGate(request,env); if(denied) return denied;
     if(!env.EVENTS) return html('<h1>Storage unavailable</h1>',503);
     const origin=request.headers.get('Origin'); if(origin && origin!==new URL(request.url).origin) return html('<h1>Request rejected</h1><p>Cross-origin moderation requests are not allowed.</p>',403);
-    const form=await request.formData(); const id=field(form,'id',80); const action=field(form,'action',30);
+    const form=await request.formData(); const id=field(form,'id',80); const action=field(form,'action',30); const reviewerNote=field(form,'reviewerNote',1000);
     if(!['approve','reject','request-changes'].includes(action)) return html('<h1>Invalid moderation action</h1>',400);
     const rows=await getEvents(env); const proposal=rows.find(e=>e.id===id && (e.status==='pending'||e.status==='changes-requested'));
     if(!proposal) return html('<h1>Proposal not found</h1><p>It may already have been reviewed.</p><p><a href="/admin">Back to queue</a></p>',404);
+    if(action==='request-changes' && !reviewerNote) return html('<h1>Reviewer note required</h1><p>Please explain what needs to change.</p><p><a href="/admin">Back to queue</a></p>',400);
     let beforeSnapshot=null; let afterSnapshot=null;
     if(action==='approve' && proposal.proposalType==='edit') {
       const target=rows.find(e=>String(e.id)===String(proposal.targetEventId) && publicEvent(e));
@@ -138,13 +140,14 @@ export async function handleContributionRoutes(request, env, url, existingEvents
     } else if(action==='approve') {
       proposal.status='published'; proposal.publishedAt=new Date().toISOString(); delete proposal.proposalType; delete proposal.proposedChanges; delete proposal.contributorEmail; afterSnapshot=JSON.parse(JSON.stringify(proposal));
     } else proposal.status=action==='reject'?'rejected':'changes-requested';
-    proposal.reviewedAt=new Date().toISOString(); proposal.reviewAction=action;
+    proposal.reviewedAt=new Date().toISOString(); proposal.reviewAction=action; if(action==='request-changes') proposal.reviewNote=reviewerNote; else delete proposal.reviewNote;
     await putEvents(env,rows);
     await writeAudit(env,{action:'proposal-'+action,targetId:proposal.targetEventId||proposal.id,summary:proposal.proposalType||'new-event',actor:'moderator',...(beforeSnapshot?{before:beforeSnapshot}:{}),...(afterSnapshot?{after:afterSnapshot}:{})});
     return new Response(null,{status:303,headers:{Location:'/admin','Cache-Control':'no-store'}});
   }
   if(path==='/admin/rollback' && request.method==='POST') {
     const denied=adminGate(request,env); if(denied) return denied;
+    if(!env.EVENTS) return html('<h1>Storage unavailable</h1>',503);
     const origin=request.headers.get('Origin'); if(origin && origin!==new URL(request.url).origin) return html('<h1>Request rejected</h1><p>Cross-origin moderation requests are not allowed.</p>',403);
     const form=await request.formData(); const key=field(form,'key',200);
     if(!key.startsWith('audit:')) return html('<h1>Invalid audit reference</h1>',400);
@@ -184,7 +187,7 @@ export async function handleContributionRoutes(request, env, url, existingEvents
     if(item.proposalType==='edit') {
       const target=rows.find(e=>String(e.id)===String(item.targetEventId)&&publicEvent(e));
       if(!target) return html('<h1>Original event not found</h1><p>The proposal was not changed.</p>',409);
-      item.proposedChanges=Object.fromEntries(Object.entries(updates).filter(([key,value])=>value!==''&&value!==target[key]));
+      item.proposedChanges=Object.fromEntries(['commonName','fullName','homepage','registrationLink','startDate','endDate','city','state','venue','selfDescription'].filter(key=>updates[key]!==''&&updates[key]!==target[key]).map(key=>[key,updates[key]]));
     }
     Object.assign(item,updates,{status:'pending',revisedAt:new Date().toISOString(),submittedAt:new Date().toISOString()});
     delete item.reviewedAt; delete item.reviewAction;
@@ -195,7 +198,7 @@ export async function handleContributionRoutes(request, env, url, existingEvents
     const id=decodeURIComponent(path.slice('/contributions/'.length)); const item=existingEvents.find(e=>e.id===id);
     if(!item) return html('<h1>Contribution not found</h1><p>Check the reference ID and try again.</p>',404);
     const statusLabel={pending:'Waiting for review','changes-requested':'Changes requested',approved:'Approved',published:'Published',rejected:'Not accepted',resolved:'Report reviewed'}[item.status]||item.status;
-    return html(`<h1>Contribution status</h1><p class="notice">${escapeHtml(statusLabel)}</p><p>Reference: <strong>${escapeHtml(item.id)}</strong></p><p>Submitted: ${escapeHtml(item.submittedAt || '')}</p>${item.reviewedAt?'<p>Reviewed: '+escapeHtml(item.reviewedAt)+'</p>':''}<p>${item.status==='changes-requested' && item.proposalType!=='report' ? 'A moderator has requested changes.' : ''}</p>${item.status==='changes-requested' && item.proposalType!=='report' ? `<p><a class="button" href="/contributions/${encodeURIComponent(item.id)}/revise">Revise contribution</a></p>` : ''}<p><a href="/">Return to events</a></p>`);
+    return html(`<h1>Contribution status</h1><p class="notice">${escapeHtml(statusLabel)}</p><p>Reference: <strong>${escapeHtml(item.id)}</strong></p><p>Submitted: ${escapeHtml(item.submittedAt || '')}</p>${item.reviewedAt?'<p>Reviewed: '+escapeHtml(item.reviewedAt)+'</p>':''}${item.reviewNote?'<p class="notice">Moderator note: '+escapeHtml(item.reviewNote)+'</p>':''}<p>${item.status==='changes-requested' && item.proposalType!=='report' ? 'A moderator has requested changes.' : ''}</p>${item.status==='changes-requested' && item.proposalType!=='report' ? `<p><a class="button" href="/contributions/${encodeURIComponent(item.id)}/revise">Revise contribution</a></p>` : ''}<p><a href="/">Return to events</a></p>`);
   }
   if(request.method==='GET' && path.startsWith('/contribute/edit/')) {
     const id=decodeURIComponent(path.slice('/contribute/edit/'.length)); const target=existingEvents.find(e=>String(e.id)===id&&publicEvent(e));
