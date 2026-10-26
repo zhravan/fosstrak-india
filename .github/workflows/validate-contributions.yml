@@ -1,0 +1,32 @@
+name: Validate event contributions
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'data/contributions/**'
+      - 'scripts/validate-contributions.mjs'
+      - '.github/workflows/validate-contributions.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'data/contributions/**'
+      - 'scripts/validate-contributions.mjs'
+      - '.github/workflows/validate-contributions.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate contributed event data
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate event JSON
+        run: npm run validate:contributions
