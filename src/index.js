@@ -271,7 +271,8 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
 
   ${showForm ? `
   <div class="event-form">
-    <h2>Submit New Event</h2>\n    ${notice ? `<div class="success-message" role="status">${escapeHtml(notice)}</div>` : ''}
+    <h2>Submit New Event</h2>
+    ${notice ? `<div class="success-message" role="status">${escapeHtml(notice)}</div>` : ''}
     ${error ? `<div class="error-message" role="alert">${escapeHtml(error)}</div>` : ''}
     <form id="submitForm" method="POST" enctype="multipart/form-data">
       <fieldset>
