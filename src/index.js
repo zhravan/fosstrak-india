@@ -577,6 +577,40 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const path = url.pathname;
+    if (request.method === 'GET' && path.startsWith('/events/') && path.endsWith('.ics')) {
+      const requestedId = decodeURIComponent(path.slice('/events/'.length, -'.ics'.length));
+      const event = events.find(row => String(row.id || eventName(row)) === requestedId);
+      if (!event || event.status === 'pending' || event.status === 'rejected') {
+        return new Response('Event not found', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+      }
+      const startDate = eventDate(event);
+      if (!validDate(startDate)) return new Response('Event has no valid start date', { status: 422 });
+      const endDate = validDate(event.endDate) ? event.endDate : startDate;
+      const icalDate = (date) => date.replaceAll('-', '');
+      const escapeIcal = (value) => String(value || '').replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+      const description = eventDescription(event);
+      const calendar = [
+        'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//FOSSTrak India//Events//EN',
+        'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
+        'UID:' + escapeIcal(event.id || requestedId) + '@fosstrak-india',
+        'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').replace(/\\.\\d{3}Z$/, 'Z'),
+        'DTSTART;VALUE=DATE:' + icalDate(startDate),
+        'DTEND;VALUE=DATE:' + icalDate(endDate > startDate ? new Date(Date.parse(endDate + 'T00:00:00Z') + 86400000).toISOString().slice(0, 10) : new Date(Date.parse(startDate + 'T00:00:00Z') + 86400000).toISOString().slice(0, 10)),
+        'SUMMARY:' + escapeIcal(eventName(event)),
+        'DESCRIPTION:' + escapeIcal(description),
+        'LOCATION:' + escapeIcal(eventLocation(event)),
+        safeUrl(event.homepage) ? 'URL:' + safeUrl(event.homepage) : '',
+        'END:VEVENT', 'END:VCALENDAR', ''
+      ].filter((line) => line !== '').join('\\r\\n');
+      return new Response(calendar, {
+        headers: {
+          'Content-Type': 'text/calendar; charset=utf-8',
+          'Content-Disposition': 'attachment; filename="fosstrak-event.ics"',
+          'Cache-Control': 'public, max-age=300',
+          'X-Content-Type-Options': 'nosniff',
+        },
+      });
+    }
     if (request.method === 'GET' && path === '/healthz') return Response.json({ status: 'ok', service: 'fosstrak-india' }, { headers: { 'Cache-Control': 'no-store' } });
     let events;
     try { events = await readEvents(env); } catch {
@@ -614,40 +648,6 @@ export default {
       events.push(event);
       try { await env.EVENTS.put('events',JSON.stringify(events)); } catch { return new Response('We could not save your submission. Please try again later.',{status:503,headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}}); }
       return new Response(HTML_TEMPLATE([],true,null,{},'Thanks! Your event has been submitted for community review.'),{status:202,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
-    }
-    if (request.method === 'GET' && path.startsWith('/events/') && path.endsWith('.ics')) {
-      const requestedId = decodeURIComponent(path.slice('/events/'.length, -'.ics'.length));
-      const event = events.find(row => String(row.id || eventName(row)) === requestedId);
-      if (!event || event.status === 'pending' || event.status === 'rejected') {
-        return new Response('Event not found', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
-      }
-      const startDate = eventDate(event);
-      if (!validDate(startDate)) return new Response('Event has no valid start date', { status: 422 });
-      const endDate = validDate(event.endDate) ? event.endDate : startDate;
-      const icalDate = (date) => date.replaceAll('-', '');
-      const escapeIcal = (value) => String(value || '').replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
-      const description = eventDescription(event);
-      const calendar = [
-        'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//FOSSTrak India//Events//EN',
-        'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
-        'UID:' + escapeIcal(event.id || requestedId) + '@fosstrak-india',
-        'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').replace(/\\.\\d{3}Z$/, 'Z'),
-        'DTSTART;VALUE=DATE:' + icalDate(startDate),
-        'DTEND;VALUE=DATE:' + icalDate(endDate > startDate ? new Date(Date.parse(endDate + 'T00:00:00Z') + 86400000).toISOString().slice(0, 10) : new Date(Date.parse(startDate + 'T00:00:00Z') + 86400000).toISOString().slice(0, 10)),
-        'SUMMARY:' + escapeIcal(eventName(event)),
-        'DESCRIPTION:' + escapeIcal(description),
-        'LOCATION:' + escapeIcal(eventLocation(event)),
-        safeUrl(event.homepage) ? 'URL:' + safeUrl(event.homepage) : '',
-        'END:VEVENT', 'END:VCALENDAR', ''
-      ].filter((line) => line !== '').join('\\r\\n');
-      return new Response(calendar, {
-        headers: {
-          'Content-Type': 'text/calendar; charset=utf-8',
-          'Content-Disposition': 'attachment; filename="fosstrak-event.ics"',
-          'Cache-Control': 'public, max-age=300',
-          'X-Content-Type-Options': 'nosniff',
-        },
-      });
     }
     if(request.method==='GET'&&path==='/submit') return new Response(HTML_TEMPLATE([],true),{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
     if(request.method==='GET'&&path==='/api/events') return Response.json(events.filter(row=>row.status!=='pending'&&row.status!=='rejected'),{headers:{'Cache-Control':'public, max-age=60'}});
