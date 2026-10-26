@@ -547,12 +547,14 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
         if (!card.dataset.date) { card.style.display = hash === 'past' ? 'none' : 'block'; return; }
         const eventDate = card.dataset.date;
         const isPast = eventDate < today;
-        const stateMatch = !document.getElementById('stateFilter').value ||
-                           card.dataset.state === document.getElementById('stateFilter').value;
-        const typeMatch = !document.getElementById('typeFilter').value ||
-                          card.dataset.type === document.getElementById('typeFilter').value;
-        const startDate = document.getElementById('startDate').value;
-        const endDate = document.getElementById('endDate').value;
+        const stateFilter = document.getElementById('stateFilter');
+        const typeFilter = document.getElementById('typeFilter');
+        const startInput = document.getElementById('startDate');
+        const endInput = document.getElementById('endDate');
+        const stateMatch = !stateFilter || !stateFilter.value || card.dataset.state === stateFilter.value;
+        const typeMatch = !typeFilter || !typeFilter.value || card.dataset.type === typeFilter.value;
+        const startDate = startInput ? startInput.value : '';
+        const endDate = endInput ? endInput.value : '';
         const dateInRange = (!startDate || eventDate >= startDate) &&
                             (!endDate || eventDate <= endDate);
         const shouldShow = dateInRange && stateMatch && typeMatch && (
