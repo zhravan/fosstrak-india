@@ -577,6 +577,11 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const path = url.pathname;
+    if (request.method === 'GET' && path === '/healthz') return Response.json({ status: 'ok', service: 'fosstrak-india' }, { headers: { 'Cache-Control': 'no-store' } });
+    let events;
+    try { events = await readEvents(env); } catch {
+      return new Response('Event data is temporarily unavailable. Please try again later.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });
+    }
     if (request.method === 'GET' && path.startsWith('/events/') && path.endsWith('.ics')) {
       const requestedId = decodeURIComponent(path.slice('/events/'.length, -'.ics'.length));
       const event = events.find(row => String(row.id || eventName(row)) === requestedId);
@@ -610,11 +615,6 @@ export default {
           'X-Content-Type-Options': 'nosniff',
         },
       });
-    }
-    if (request.method === 'GET' && path === '/healthz') return Response.json({ status: 'ok', service: 'fosstrak-india' }, { headers: { 'Cache-Control': 'no-store' } });
-    let events;
-    try { events = await readEvents(env); } catch {
-      return new Response('Event data is temporarily unavailable. Please try again later.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });
     }
     if (request.method === 'POST' && path === '/submit') {
       if (!env.EVENTS) return new Response('Event submission is not configured yet.', { status: 503 });
