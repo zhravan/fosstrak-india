@@ -1,77 +1,82 @@
-<samp>
-
 <p align="center">
-  <img align="center" width="20%" src="public/ft_logo.png" alt="logo"/>
-  <h2 align="center">FossTrak - Open Data for FOSS Events in India</h2>
-   <p>FossTrak is an open-source project that aims to provide a central platform for discovering and previewing all
-      the Free and Open Source Software (FOSS) events happening across India.
-   </p>
+  <img align="center" width="20%" src="public/ft_logo.png" alt="FOSSTrak India logo"/>
+  <h2 align="center">FOSSTrak India — Open Data for FOSS Events</h2>
+  <p align="center">Discover and contribute Free and Open Source Software events happening across India.</p>
 </p>
 
 <p align="center">
-    <img src="https://img.shields.io/badge/license-MIT-green?logo=dark-green" alt="MIT License" style="margin: 5px;" />
-    <img src="https://img.shields.io/badge/PRs-Welcome-success" alt="PRs Welcome" style="margin: 5px;" />
-    <a href="https://github.com/shravan20/fosstrak/issues"><img src="https://img.shields.io/badge/Help%20Wanted-Contribute-blue" style="margin: 5px;"></a>
+  <img src="https://img.shields.io/badge/license-MIT-green?logo=dark-green" alt="MIT License"/>
+  <img src="https://img.shields.io/badge/PRs-Welcome-success" alt="PRs Welcome"/>
 </p>
 
-<p align="center">
-    <img src="https://madewithlove.now.sh/in?heart=true&colorA=%23ff671f&colorB=%23046a38&text=the+Quantum+Realm+of+Open+Source" alt="Made with love with Open Source"/>
-</p>
+FOSSTrak India is an open-source, community-driven directory for discovering FOSS conferences, meetups, hackathons, workshops, and other events throughout India.
 
-<section>
-   <h2>Project Stack</h2>
-   <ul>
-      <li>React: A JavaScript library for building user interfaces.</li>
-      <li>Tailwind CSS: A utility-first CSS framework for rapid UI development.</li>
-      <li>CSV: Comma-Separated Values - a simple file format for storing tabular data.</li>
-   </ul>
-</section>
-<section>
-   <h2>Prerequisites</h2>
-   <p>To run this project, you will need the following:</p>
-   <ul>
-      <li>Node.js (requires 16.9 or higher) and npm (or yarn) installed on your system.</li>
-      <li>A code editor or IDE of your choice.</li>
-   </ul>
-</section>
-<section>
-   <h3>Installation</h3>
-   <ol>
-      <li>Clone the repository:</li>
-      <code>git clone <a href="https://github.com/shravan20/fosstrak-india.git">https://github.com/shravan20/fosstrak-india.git</a></code>
-      <li>Navigate to the project directory:</li>
-      <code>cd fosstrak-india</code>
-      <li>Install dependencies:</li>
-      <code>npm i</code>
-   </ol>
-</section>
-<section>
-   <h3>Running the Application</h3>
-   <code>npm start</code>
-   <p>This will start a local development server at <a href="http://localhost:3000">http://localhost:3000</a> by
-      default. You can then open this URL in your web browser to view the application.
-   </p>
-</section>
-<section>
-   <h2>Data Source</h2>
-   <p>The application currently uses CSV files as the source of open data for FOSS events. The specific CSV files and
-      their format will be documented in a separate file.
-   </p>
-</section>
-<section>
-   <h3>Deploy Your Own</h3>
-   <p>Deploy your own FOSSTrak project with Vercel.</p>
-   <a href="https://vercel.com/new/clone?repository-url=https://github.com/shravan20/fosstrak-india/tree/main&template=create-react-app">
-   <img src="https://vercel.com/button" alt="Deploy with Vercel">
-   </a>
-   <p><em>Live Example: <a href="https://fosstrak-india.vercel.app/">https://fosstrak-india.vercel.app/</a></em></p>
-</section>
-<footer>
-   <h2>Contributing</h2>
-   <p>We welcome contributions to this project! Please see the CONTRIBUTING.md file for guidelines on how to
-      contribute code, report issues, and request features.
-   </p>
-   <h2>License</h2>
-   <p>This project is licensed under the MIT License. See the <a href="./LICENSE.md">LICENSE</a> file for details.</p>
-</footer>
-<samp>
+## Stack
+
+- Cloudflare Workers — application and HTTP API
+- Cloudflare Workers KV — event data
+- Wrangler — local development and deployment
+- Vitest with Cloudflare's Workers test pool — automated tests
+
+## Prerequisites
+
+- Node.js 24.x
+- npm
+- A Cloudflare account with permission to manage Workers and Workers KV
+
+## Local development
+
+```sh
+git clone https://github.com/zhravan/fosstrak-india.git
+cd fosstrak-india
+npm install
+```
+
+Create a local Wrangler config from the example and replace the placeholder KV namespace ID with a namespace you own:
+
+```sh
+cp wrangler-example.jsonc wrangler.jsonc
+```
+
+Then start the local Worker:
+
+```sh
+npm start
+```
+
+Run tests with:
+
+```sh
+npm test
+```
+
+## Deploy to Cloudflare Workers
+
+1. Create a Workers KV namespace for event data in your Cloudflare account.
+2. Copy `wrangler-example.jsonc` to `wrangler.jsonc` and set the `EVENTS` binding's `id` to your namespace ID. Keep real account-specific configuration out of the example file.
+3. Authenticate Wrangler with `npx wrangler login`, or configure a scoped Cloudflare API token in your CI environment.
+4. Deploy with:
+
+```sh
+npm run deploy
+```
+
+For current setup details, see the [Cloudflare Workers documentation](https://developers.cloudflare.com/workers/) and [Workers KV documentation](https://developers.cloudflare.com/kv/).
+
+## Application endpoints
+
+- `/` — published FOSS events
+- `/submit` — submit an event for review
+- `/api/events` — published events in JSON
+- `/healthz` — health check
+- `/events/<event-id>.ics` — calendar download for a published event with a valid date
+
+Submissions are pending review by design. Do not expose a moderation endpoint without proper authentication and authorization.
+
+## Contributing
+
+Contributions are welcome. Please open an issue to discuss larger changes, and submit a pull request with focused changes and tests. Never commit Cloudflare account IDs, namespace IDs tied to private infrastructure, API tokens, or other secrets.
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE.md](./LICENSE.md).
