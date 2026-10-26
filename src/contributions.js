@@ -90,6 +90,7 @@ const createProposal = async (request, env, type, targetId = '') => {
   if(type!=='edit' && duplicate) return html('<h1>Possible duplicate</h1><p>An event with the same name and start date is already listed. Open the existing event and suggest an edit or contact a moderator.</p><p><a href="/">Browse events</a></p>',409);
   const scopes = await trustedScopes(field(form,'trustedToken',500),env);
   const proposal = { ...data, id:crypto.randomUUID(), proposalType:type, status:'pending', submittedAt:new Date().toISOString(), ...(target ? {targetEventId:target.id,targetEventName:eventName(target),proposedChanges:Object.fromEntries(['commonName','fullName','homepage','registrationLink','startDate','endDate','city','state','venue','selfDescription'].filter(key=>data[key]!==''&&data[key]!==target[key]).map(key=>[key,data[key]]))} : {}), ...(type==='new-edition' ? {basedOn:targetId} : {}) };
+  if(type==='edit' && !Object.keys(proposal.proposedChanges || {}).length) return html('<h1>No changes detected</h1><p>Nothing differs from the current event. <a href="/">Return to the calendar</a>.</p>',400);
   if(type==='edit' && scopes.includes('publish_edits')) {
     const before = JSON.parse(JSON.stringify(target));
     const allowed=['commonName','fullName','homepage','registrationLink','startDate','endDate','city','state','venue','selfDescription'];
@@ -105,7 +106,7 @@ const createProposal = async (request, env, type, targetId = '') => {
     await writeAudit(env,{action:'trusted-event-published',targetId:proposal.id,summary:type,actor:'trusted-contributor',after:JSON.parse(JSON.stringify(proposal))});
     return html('<h1>Event published</h1><p class="notice">Your verified contribution is live. The publication is recorded in the audit history.</p><p><a href="/">View events</a></p>',201);
   }
-  if(type==='edit' && !Object.keys(proposal.proposedChanges || {}).length) return html('<h1>No changes detected</h1><p>Nothing differs from the current event. <a href="/">Return to the calendar</a>.</p>',400);
+
   events.push(proposal); await putEvents(env,events); await writeAudit(env,{action:'proposal-submitted',targetId:proposal.targetEventId || proposal.id,summary:type,actor:'community'});
   return html(`<h1>Contribution received</h1><p class="notice">Thank you. Your ${escapeHtml(type==='edit'?'edit suggestion':type==='new-edition'?'new-edition submission':'event submission')} is waiting for review.</p><p>Reference ID: <strong>${escapeHtml(proposal.id)}</strong></p><p>Save this reference to check its status later.</p><p><a class="button" href="/contributions/${encodeURIComponent(proposal.id)}">Check contribution status</a></p><p><a href="/">Return to FOSSTrak</a></p>`,202);
 };
@@ -146,6 +147,7 @@ export async function handleContributionRoutes(request, env, url, existingEvents
   }
   if(path==='/admin/rollback' && request.method==='POST') {
     const denied=adminGate(request,env); if(denied) return denied;
+    if(!env.EVENTS) return html('<h1>Storage unavailable</h1>',503);
     const origin=request.headers.get('Origin'); if(origin && origin!==new URL(request.url).origin) return html('<h1>Request rejected</h1><p>Cross-origin moderation requests are not allowed.</p>',403);
     const form=await request.formData(); const key=field(form,'key',200);
     if(!key.startsWith('audit:')) return html('<h1>Invalid audit reference</h1>',400);
