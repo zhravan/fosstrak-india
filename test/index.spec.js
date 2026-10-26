@@ -49,4 +49,16 @@ describe('FOSSTrak India Worker', () => {
  it('rejects unsupported HTTP methods', async () => {
   const response=await worker.fetch(new Request('https://example.com/',{method:'DELETE'}),createEnv()); expect(response.status).toBe(405);
  });
+ it('generates an iCalendar download for a published event', async () => {
+  const env=createEnv([{id:'calendar-event',commonName:'FOSS India Meetup',startDate:'2027-01-10',endDate:'2027-01-11',city:'Bengaluru',state:'Karnataka',presentationForm:'physical',selfDescription:'Community meetup',homepage:'https://example.org',status:'published'}]);
+  const response=await worker.fetch(new Request('https://example.com/events/calendar-event.ics'),env);
+  const calendar=await response.text();
+  expect(response.status).toBe(200);
+  expect(response.headers.get('Content-Type')).toContain('text/calendar');
+  expect(calendar).toContain('BEGIN:VCALENDAR');
+  expect(calendar).toContain('SUMMARY:FOSS India Meetup');
+  expect(calendar).toContain('DTSTART;VALUE=DATE:20270110');
+  expect(calendar).toContain('DTEND;VALUE=DATE:20270112');
+ });
+
 });
