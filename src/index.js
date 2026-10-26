@@ -614,7 +614,7 @@ export default {
     if(request.method==='GET'&&path==='/submit') return new Response(HTML_TEMPLATE([],true),{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
     if(request.method==='GET'&&path==='/api/events') return Response.json(events.filter(row=>!row.proposalType&&!['pending','rejected','changes-requested','archived'].includes(row.status)),{headers:{'Cache-Control':'public, max-age=60'}});
     if(request.method!=='GET') return new Response('Method not allowed',{status:405,headers:{Allow:'GET, POST','Content-Type':'text/plain; charset=utf-8'}});
-    const published=events.filter(row=>!row.proposalType&&!['pending','rejected','changes-requested'].includes(row.status)); published.sort((a,b)=>eventDate(a).localeCompare(eventDate(b)));
+    const published=events.filter(row=>!row.proposalType&&!['pending','rejected','changes-requested','archived'].includes(row.status)); published.sort((a,b)=>eventDate(a).localeCompare(eventDate(b)));
     return new Response(HTML_TEMPLATE(published),{headers:{
       'Content-Type':'text/html; charset=utf-8','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin',
       'Content-Security-Policy':"default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
