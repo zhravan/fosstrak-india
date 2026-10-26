@@ -222,30 +222,30 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
 
   ${showForm ? `
   <div class="event-form">
-    <div class="form-intro"><p class="eyebrow">Community submissions</p><h2>Share a FOSS event</h2><p>Help people across India find conferences, meetups, workshops and hackathons. Add the details below; submissions are reviewed before they appear in the calendar.</p><div class="form-progress">Required fields are marked by your browser · Usually takes a few minutes</div></div>
+    <div class="form-intro"><p class="eyebrow">Community submissions</p><h2>Share a FOSS event</h2><p>Help people across India find conferences, meetups, workshops and hackathons. Add the details below; submissions are reviewed before they appear in the calendar.</p><div class="form-progress">Fields marked * are required · Usually takes a few minutes</div></div>
     ${notice ? `<div class="success-message" role="status">${escapeHtml(notice)}</div>` : ''}
     ${error ? `<div class="error-message" role="alert">${escapeHtml(error)}</div>` : ''}
     <form id="submitForm" method="POST" enctype="multipart/form-data">
       <fieldset>
         <legend>Mandatory Data</legend>
         <div class="form-group">
-          <label for="commonName">Common Name:</label>
+          <label for="commonName">Event name <span aria-hidden="true">*</span></label>
           <input type="text" id="commonName" name="commonName" maxlength="40" placeholder="e.g. FOSS United Conference" value="${escapeHtml(formData.commonName || '')}" autocomplete="organization" required>
         </div>
         <div class="form-group">
-          <label for="fullName">Full Name:</label>
+          <label for="fullName">Full event name <span aria-hidden="true">*</span></label>
           <input type="text" id="fullName" name="fullName" maxlength="80" placeholder="e.g. FOSS United Conference" value="${escapeHtml(formData.fullName || '')}" required>
         </div>
         <div class="form-group">
-          <label for="homepage">Homepage (Event Website):</label>
+          <label for="homepage">Event website <span aria-hidden="true">*</span></label>
           <input type="url" id="homepage" name="homepage" placeholder="e.g. https://example.org" value="${escapeHtml(formData.homepage || '')}" required>
         </div>
         <div class="form-group">
-          <label for="startDate">Start Date:</label>
+          <label for="startDate">Start date <span aria-hidden="true">*</span></label>
           <input type="date" id="startDate" name="startDate" value="${escapeHtml(formData.startDate || '')}" required>
         </div>
         <div class="form-group">
-          <label for="endDate">End Date:</label>
+          <label for="endDate">End date <span aria-hidden="true">*</span></label>
           <input type="date" id="endDate" name="endDate" value="${escapeHtml(formData.endDate || '')}" required>
         </div>
         <div class="form-group">
@@ -253,7 +253,7 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
           <textarea id="selfDescription" name="selfDescription" rows="5" maxlength="5000" placeholder="A short description from the event website. Markdown is supported." required>${escapeHtml(formData.selfDescription || '')}</textarea>
         </div>
         <div class="form-group">
-          <label for="presentationForm">Presentation Form:</label>
+          <label for="presentationForm">Event format <span aria-hidden="true">*</span></label>
           <select id="presentationForm" name="presentationForm" required>
             <option value="">Select</option>
             <option value="online">online</option>
