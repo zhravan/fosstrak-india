@@ -112,7 +112,7 @@ const createProposal = async (request, env, type, targetId = '') => {
 export async function handleContributionRoutes(request, env, url, existingEvents) {
   const path = url.pathname;
   if(request.method==='POST' && path==='/submit' && await rateLimited(request,env)) return html('<h1>Slow down a moment</h1><p>Too many contributions from this connection. Please try again in about an hour.</p>',429,{'Retry-After':'3600'});
-  if(request.method==='POST' && (path==='/report' || path.startsWith('/report/') || path.startsWith('/contribute/edit/') || (path.startsWith('/events/') && path.endsWith('/new-edition'))) && await rateLimited(request,env)) return html('<h1>Slow down a moment</h1><p>Too many contributions from this connection. Please try again in about an hour.</p>',429,{'Retry-After':'3600'});
+  if(request.method==='POST' && (path==='/report' || path.startsWith('/report/') || path.startsWith('/contribute/edit/') || (path.startsWith('/events/') && path.endsWith('/new-edition') || path.startsWith('/contributions/') && path.endsWith('/revise'))) && await rateLimited(request,env)) return html('<h1>Slow down a moment</h1><p>Too many contributions from this connection. Please try again in about an hour.</p>',429,{'Retry-After':'3600'});
   if (request.method==='GET' && path==='/admin') {
     const denied=adminGate(request,env); if(denied) return denied;
     try { return await adminPage(env); } catch { return html('<h1>Moderation unavailable</h1><p>Could not read the queue. Please retry.</p>',503); }
@@ -162,6 +162,34 @@ export async function handleContributionRoutes(request, env, url, existingEvents
     await putEvents(env,rows);
     await writeAudit(env,{action:'rollback',targetId:target.id,summary:'Reverted audit record '+key,actor:'moderator',before:record.after||null,after:JSON.parse(JSON.stringify(target))});
     return new Response(null,{status:303,headers:{Location:'/admin','Cache-Control':'no-store'}});
+  }
+  if(path.startsWith('/contributions/') && path.endsWith('/revise') && request.method==='GET') {
+    const id=decodeURIComponent(path.slice('/contributions/'.length,-'/revise'.length));
+    const item=existingEvents.find(e=>e.id===id && e.status==='changes-requested' && e.proposalType!=='report');
+    if(!item) return html('<h1>Revision unavailable</h1><p>This contribution is not waiting for changes, or it is a report.</p>',404);
+    return formPage('Revise your contribution',`/contributions/${encodeURIComponent(id)}/revise`,item,'Update the requested details and resubmit. Your reference ID will stay the same.');
+  }
+  if(path.startsWith('/contributions/') && path.endsWith('/revise') && request.method==='POST') {
+    const id=decodeURIComponent(path.slice('/contributions/'.length,-'/revise'.length));
+    const rows=await getEvents(env); const item=rows.find(e=>e.id===id && e.status==='changes-requested' && e.proposalType!=='report');
+    if(!item) return html('<h1>Revision unavailable</h1><p>This contribution is not waiting for changes.</p>',404);
+    const form=await request.formData();
+    const updates={
+      commonName:field(form,'commonName',100),fullName:field(form,'fullName',160),homepage:safeUrl(field(form,'homepage',2048)),
+      registrationLink:safeUrl(field(form,'registrationLink',2048)),startDate:field(form,'startDate',10),endDate:field(form,'endDate',10),
+      city:field(form,'city',100),state:field(form,'state',100),venue:field(form,'venue',200),selfDescription:field(form,'selfDescription',5000),
+      sourceUrl:safeUrl(field(form,'sourceUrl',2048)),contributorName:field(form,'contributorName',100),contributorEmail:field(form,'contributorEmail',254)
+    };
+    if(!updates.commonName||!updates.homepage||!updates.selfDescription||!updates.sourceUrl||!validDate(updates.startDate)||!validDate(updates.endDate)||updates.endDate<updates.startDate) return html('<h1>Check the revised details</h1><p class="error">Provide an event name, valid website, description, source URL and valid dates.</p><p><a href="javascript:history.back()">Go back</a></p>',400);
+    if(item.proposalType==='edit') {
+      const target=rows.find(e=>String(e.id)===String(item.targetEventId)&&publicEvent(e));
+      if(!target) return html('<h1>Original event not found</h1><p>The proposal was not changed.</p>',409);
+      item.proposedChanges=Object.fromEntries(Object.entries(updates).filter(([key,value])=>value!==''&&value!==target[key]));
+    }
+    Object.assign(item,updates,{status:'pending',revisedAt:new Date().toISOString(),submittedAt:new Date().toISOString()});
+    delete item.reviewedAt; delete item.reviewAction;
+    await putEvents(env,rows); await writeAudit(env,{action:'proposal-revised',targetId:item.targetEventId||item.id,summary:item.proposalType||'new-event',actor:'community'});
+    return html(`<h1>Revision submitted</h1><p class="notice">Your changes have been sent for review. The reference ID is unchanged.</p><p><a class="button" href="/contributions/${encodeURIComponent(id)}">Check status</a></p>`,202);
   }
   if(request.method==='GET' && path.startsWith('/contributions/')) {
     const id=decodeURIComponent(path.slice('/contributions/'.length)); const item=existingEvents.find(e=>e.id===id);
