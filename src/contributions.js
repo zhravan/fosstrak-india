@@ -89,7 +89,7 @@ const createProposal = async (request, env, type, targetId = '') => {
   const duplicate = events.some(e => publicEvent(e) && eventName(e).trim().toLowerCase()===data.commonName.toLowerCase() && eventDate(e)===data.startDate);
   if(type!=='edit' && duplicate) return html('<h1>Possible duplicate</h1><p>An event with the same name and start date is already listed. Open the existing event and suggest an edit or contact a moderator.</p><p><a href="/">Browse events</a></p>',409);
   const scopes = await trustedScopes(field(form,'trustedToken',500),env);
-  const proposal = { ...data, id:crypto.randomUUID(), proposalType:type, status:'pending', submittedAt:new Date().toISOString(), ...(target ? {targetEventId:target.id,targetEventName:eventName(target),proposedChanges:Object.fromEntries(Object.entries(data).filter(([key,value])=>value!=='' && value!==target[key]))} : {}), ...(type==='new-edition' ? {basedOn:targetId} : {}) };
+  const proposal = { ...data, id:crypto.randomUUID(), proposalType:type, status:'pending', submittedAt:new Date().toISOString(), ...(target ? {targetEventId:target.id,targetEventName:eventName(target),proposedChanges:Object.fromEntries(['commonName','fullName','homepage','registrationLink','startDate','endDate','city','state','venue','selfDescription'].filter(key=>data[key]!==''&&data[key]!==target[key]).map(key=>[key,data[key]]))} : {}), ...(type==='new-edition' ? {basedOn:targetId} : {}) };
   if(type==='edit' && scopes.includes('publish_edits')) {
     const before = JSON.parse(JSON.stringify(target));
     const allowed=['commonName','fullName','homepage','registrationLink','startDate','endDate','city','state','venue','selfDescription'];
@@ -185,7 +185,7 @@ export async function handleContributionRoutes(request, env, url, existingEvents
     if(item.proposalType==='edit') {
       const target=rows.find(e=>String(e.id)===String(item.targetEventId)&&publicEvent(e));
       if(!target) return html('<h1>Original event not found</h1><p>The proposal was not changed.</p>',409);
-      item.proposedChanges=Object.fromEntries(Object.entries(updates).filter(([key,value])=>value!==''&&value!==target[key]));
+      item.proposedChanges=Object.fromEntries(['commonName','fullName','homepage','registrationLink','startDate','endDate','city','state','venue','selfDescription'].filter(key=>updates[key]!==''&&updates[key]!==target[key]).map(key=>[key,updates[key]]));
     }
     Object.assign(item,updates,{status:'pending',revisedAt:new Date().toISOString(),submittedAt:new Date().toISOString()});
     delete item.reviewedAt; delete item.reviewAction;
