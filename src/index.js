@@ -18,244 +18,195 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
   <title>FOSSTrak India - FOSS Events</title>
   <style>
     :root {
-      --primary: #2c3e50;
-      --secondary: #3498db;
-      --light: #ecf0f1;
-      --dark: #2c3e50;
+      color-scheme: light;
+      --ink: #202a24;
+      --muted: #66736a;
+      --paper: #f7f7f2;
+      --surface: #fff;
+      --line: #dce2d9;
+      --green: #285c43;
+      --green-dark: #1c4431;
+      --green-pale: #eaf1e9;
+      --orange: #d86b3d;
+      --danger: #9d342c;
+      --shadow: 0 1px 2px rgba(25, 43, 31, .05);
     }
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      line-height: 1.6;
-      background: var(--light);
+      margin: 0;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      background: var(--paper);
+      color: var(--ink);
+      font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
     }
+    a { color: var(--green); text-underline-offset: 3px; }
+    a:hover { color: var(--green-dark); }
     .header {
-      background: var(--primary);
-      color: white;
-      padding: 1rem;
-      text-align: center;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      padding: 22px 24px 18px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      color: var(--ink);
+      text-align: left;
+      box-shadow: none;
     }
+    .header h1, .header p, .nav, .events-container, .filters, .event-form, .footer {
+      width: min(100% - 40px, 1040px);
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .header h1 { font-size: 1.25rem; line-height: 1.25; letter-spacing: -.035em; font-weight: 760; }
+    .header p { margin-top: 5px; color: var(--muted); font-size: .92rem; }
     .nav {
       display: flex;
-      gap: 1rem;
-      justify-content: center;
-      padding: 1rem;
-      background: var(--dark);
+      justify-content: flex-start;
       flex-wrap: wrap;
+      gap: 6px;
+      padding: 14px 0;
+      background: transparent;
     }
     .nav a {
-      color: white;
-      text-decoration: none;
-      padding: 0.5rem 1rem;
-      border-radius: 4px;
-      transition: background 0.3s;
-    }
-    .nav a:hover {
-      background: var(--secondary);
-    }
-    .events-container {
-      padding: 1rem;
-      max-width: 1200px;
-      margin: 0 auto;
-      flex-grow: 1;
-    }
-    .event-card {
-      background: white;
-      border-radius: 8px;
-      margin: 1rem 0;
-      padding: 1.5rem;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .event-date {
-      color: var(--secondary);
-      font-weight: bold;
-    }
-    .event-location {
-      color: #7f8c8d;
-      font-size: 0.9rem;
-      margin: 0.5rem 0;
-    }
-    .event-tags {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      margin-top: 1rem;
-    }
-    .tag {
-      background: var(--light);
-      padding: 0.25rem 0.75rem;
-      border-radius: 20px;
-      font-size: 0.8rem;
-    }
-    .footer {
-      background: var(--dark);
-      color: white;
-      text-align: center;
-      padding: 1rem;
-      position: sticky;
-      top: 100vh;
-      margin-top: auto;
-    }
-    /* Event form styles */
-    .event-form {
-      max-width: 800px;
-      margin: 2rem auto;
-      padding: 1.5rem;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .form-group {
-      margin-bottom: 1rem;
-    }
-    label {
-      display: block;
-      font-weight: 600;
-      margin-bottom: 0.3rem;
-    }
-    input, select, textarea {
-      width: 100%;
-      padding: 0.5rem;
-      border: 1px solid #bdc3c7;
-      border-radius: 4px;
-    }
-    button {
-      background: var(--secondary);
-      color: white;
-      padding: 0.8rem 1.5rem;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: opacity 0.3s;
-    }
-    button:hover {
-      opacity: 0.9;
-    }
-    fieldset {
-      border: 1px solid #bdc3c7;
-      border-radius: 4px;
-      padding: 1rem;
-      margin-bottom: 1.5rem;
-    }
-    legend {
-      font-weight: bold;
-      padding: 0 0.5rem;
-    }
-    .checkbox-group {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.5rem;
-      margin-top: 0.5rem;
-    }
-    .checkbox-group label {
-      display: flex;
-      align-items: center;
-      font-weight: normal;
-    }
-    @media (max-width: 768px) {
-      .events-container {
-        grid-template-columns: 1fr;
-      }
-      .event-form {
-        padding: 1rem;
-        margin: 1rem;
-      }
-    }
-    /* Filters styles (unchanged) */
-    .filters {
-      max-width: 1200px;
-      margin: 1rem auto 0;
-      padding: 1rem;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .filter-group {
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-    .filter-item {
-      flex: 1;
-      min-width: 200px;
-    }
-    .filter-item label {
-      font-size: 0.9rem;
-      margin-bottom: 0.25rem;
-      display: block;
-      color: #7f8c8d;
-    }
-    .date-range {
-      display: flex;
-      gap: 0.5rem;
-      align-items: center;
-    }
-    .date-range span {
-      color: #7f8c8d;
-    }
-    select, input[type="date"] {
-      padding: 0.5rem;
-      font-size: 0.9rem;
-      border: 1px solid #bdc3c7;
-      border-radius: 4px;
-      width: 100%;
-    }
-    .empty-state {
-      text-align: center;
-      padding: 4rem 2rem;
-      color: #7f8c8d;
-    }
-    .empty-illustration {
-      max-width: 300px;
-      margin: 0 auto 2rem;
-      opacity: 0.8;
-    }
-    .empty-state h2 {
-      color: var(--primary);
-      margin-bottom: 1rem;
-    }
-    .empty-state .cta {
-      margin-top: 2.5rem;
-      display: flex;
-      justify-content: center;
-    }
-    .empty-state .cta-btn {
-      background: var(--secondary);
-      color: white;
-      padding: 1rem 2rem;
-      border-radius: 50px;
-      text-decoration: none;
-      font-weight: 600;
-      transition: all 0.3s ease;
       display: inline-flex;
       align-items: center;
-      gap: 0.5rem;
-      box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11);
+      min-height: 38px;
+      padding: 7px 12px;
+      border: 1px solid transparent;
+      border-radius: 5px;
+      color: var(--muted);
+      font-size: .92rem;
+      font-weight: 560;
+      text-decoration: none;
+      transition: background .15s ease, color .15s ease, border-color .15s ease;
     }
-    .empty-state .cta-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1);
-      background: #2a80b9;
+    .nav a:hover { background: var(--green-pale); color: var(--green-dark); }
+    .nav a[href="/submit"] { margin-left: auto; background: var(--green); color: white; }
+    .nav a[href="/submit"]:hover { background: var(--green-dark); }
+    .events-container { flex: 1; padding: 18px 0 48px; }
+    .event-card {
+      margin: 0 0 12px;
+      padding: 20px 22px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      box-shadow: none;
     }
-    .empty-state svg {
+    .event-card h2 { margin: 5px 0 3px; font-size: 1.2rem; line-height: 1.35; letter-spacing: -.02em; }
+    .event-card p { margin: 10px 0; color: #48544c; overflow-wrap: anywhere; }
+    .event-date { color: var(--green); font-size: .87rem; font-weight: 700; }
+    .event-location { margin: 4px 0 12px; color: var(--muted); font-size: .9rem; }
+    .event-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+    .tag { display: inline-block; padding: 3px 8px; background: var(--green-pale); color: var(--green-dark); border-radius: 3px; font-size: .78rem; }
+    .filters { margin-top: 10px; padding: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 7px; box-shadow: none; }
+    .filter-group { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .filter-item { min-width: 0; }
+    .filter-item label { display: block; margin-bottom: 6px; color: var(--muted); font-size: .82rem; font-weight: 650; }
+    .date-range { display: flex; align-items: center; gap: 8px; }
+    .date-range span { color: var(--muted); font-size: .82rem; }
+    .event-form {
+      margin-top: 10px;
+      margin-bottom: 52px;
+      padding: clamp(20px, 4vw, 38px);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+    .form-intro { max-width: 680px; margin: 0 0 28px; }
+    .eyebrow { margin: 0 0 8px; color: var(--green); font-size: .75rem; font-weight: 750; letter-spacing: .09em; text-transform: uppercase; }
+    .event-form h2 { margin: 0; font-size: clamp(1.7rem, 4vw, 2.2rem); line-height: 1.15; letter-spacing: -.045em; }
+    .form-intro p:last-child { margin: 12px 0 0; color: var(--muted); max-width: 62ch; }
+    .form-progress { display: flex; align-items: center; gap: 8px; margin-top: 18px; color: var(--muted); font-size: .8rem; }
+    .form-progress::before { content: ""; width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: var(--orange); }
+    .event-form fieldset {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px 16px;
+      margin: 0 0 18px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      min-width: 0;
+    }
+    .event-form legend { padding: 0 8px 0 0; color: var(--ink); font-size: 1rem; font-weight: 750; letter-spacing: -.015em; }
+    .form-group { min-width: 0; margin: 0; }
+    .form-group:has(textarea), .form-group:has(.checkbox-group), .social-accounts { grid-column: 1 / -1; }
+    label { display: block; margin-bottom: 6px; color: #344139; font-size: .86rem; font-weight: 650; }
+    input, select, textarea {
+      display: block;
       width: 100%;
-      height: auto;
+      min-width: 0;
+      min-height: 43px;
+      padding: 10px 11px;
+      border: 1px solid #cbd4ca;
+      border-radius: 4px;
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+      font-size: .92rem;
+      box-shadow: none;
+      transition: border-color .15s ease, box-shadow .15s ease;
     }
-    .empty-state .cta-btn::after {
-      content: '➔';
-      transition: transform 0.3s ease;
+    textarea { min-height: 110px; resize: vertical; line-height: 1.5; }
+    input::placeholder, textarea::placeholder { color: #8a958d; opacity: 1; }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(40, 92, 67, .12);
     }
-    .empty-state .cta-btn:hover::after {
-      transform: translateX(3px);
+    input[type="checkbox"] { width: 16px; min-height: 16px; height: 16px; margin: 0; accent-color: var(--green); }
+    .checkbox-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; margin-top: 8px; }
+    .checkbox-group label { display: flex; align-items: center; gap: 9px; margin: 0; font-weight: 500; }
+    .social-accounts { display: contents; }
+    .social-accounts h3 { grid-column: 1 / -1; margin: 4px 0 -4px; font-size: .95rem; }
+    .submit-btn, button {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 44px;
+      padding: 10px 18px;
+      border: 1px solid var(--green);
+      border-radius: 4px;
+      background: var(--green);
+      color: #fff;
+      font: inherit;
+      font-size: .92rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .15s ease, border-color .15s ease;
     }
+    .submit-btn:hover, button:hover { background: var(--green-dark); border-color: var(--green-dark); }
+    .success-message, .error-message { margin: 18px 0; padding: 12px 14px; border-radius: 4px; font-size: .92rem; }
+    .success-message { background: #edf5ed; border: 1px solid #c7ddc8; color: #235435; }
+    .error-message { background: #fff1ef; border: 1px solid #edc9c4; color: var(--danger); }
+    .empty-state { padding: clamp(42px, 8vw, 84px) 20px; text-align: center; color: var(--muted); }
+    .empty-illustration { display: none; }
+    .empty-state h2 { margin-bottom: 8px; color: var(--ink); font-size: 1.45rem; letter-spacing: -.03em; }
+    .empty-state p { margin: 0; }
+    .empty-state .cta { margin-top: 22px; display: flex; justify-content: center; }
+    .empty-state .cta-btn { display: inline-flex; align-items: center; padding: 10px 15px; border: 1px solid var(--green); border-radius: 4px; background: var(--green); color: white; font-weight: 650; text-decoration: none; box-shadow: none; }
+    .empty-state .cta-btn:hover { background: var(--green-dark); }
+    .empty-state .cta-btn::after { content: " ↗"; }
+    .footer { width: 100%; max-width: none; margin-top: auto; padding: 22px 20px; border-top: 1px solid var(--line); background: #f0f2eb; color: var(--muted); text-align: center; font-size: .82rem; }
+    .footer p + p { margin-top: 3px; }
+    @media (max-width: 680px) {
+      .header { padding: 18px 0 15px; }
+      .header h1, .header p, .nav, .events-container, .filters, .event-form { width: calc(100% - 28px); }
+      .nav { padding: 10px 0; gap: 2px; }
+      .nav a { padding: 7px 9px; font-size: .86rem; }
+      .nav a[href="/submit"] { margin-left: 0; }
+      .filter-group { grid-template-columns: 1fr; gap: 12px; }
+      .event-form { padding: 20px 14px; }
+      .event-form fieldset { grid-template-columns: 1fr; gap: 15px; padding: 18px 13px; }
+      .form-group:has(textarea), .form-group:has(.checkbox-group), .social-accounts, .social-accounts h3 { grid-column: auto; }
+      .checkbox-group { grid-template-columns: 1fr; gap: 11px; }
+      .event-card { padding: 17px; }
+      .date-range { align-items: stretch; }
+      .date-range span { align-self: center; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
   </style>
 </head>
 <body class="container">
@@ -271,7 +222,7 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
 
   ${showForm ? `
   <div class="event-form">
-    <h2>Submit New Event</h2>
+    <div class="form-intro"><p class="eyebrow">Community submissions</p><h2>Share a FOSS event</h2><p>Help people across India find conferences, meetups, workshops and hackathons. Add the details below; submissions are reviewed before they appear in the calendar.</p><div class="form-progress">Required fields are marked by your browser · Usually takes a few minutes</div></div>
     ${notice ? `<div class="success-message" role="status">${escapeHtml(notice)}</div>` : ''}
     ${error ? `<div class="error-message" role="alert">${escapeHtml(error)}</div>` : ''}
     <form id="submitForm" method="POST" enctype="multipart/form-data">
@@ -279,7 +230,7 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
         <legend>Mandatory Data</legend>
         <div class="form-group">
           <label for="commonName">Common Name:</label>
-          <input type="text" id="commonName" name="commonName" maxlength="40" placeholder="e.g. FOSS United Conference" value="${escapeHtml(formData.commonName || '')}" required>
+          <input type="text" id="commonName" name="commonName" maxlength="40" placeholder="e.g. FOSS United Conference" value="${escapeHtml(formData.commonName || '')}" autocomplete="organization" required>
         </div>
         <div class="form-group">
           <label for="fullName">Full Name:</label>
@@ -298,8 +249,8 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
           <input type="date" id="endDate" name="endDate" value="${escapeHtml(formData.endDate || '')}" required>
         </div>
         <div class="form-group">
-          <label for="selfDescription">Self-Description (Markdown supported):</label>
-          <textarea id="selfDescription" name="selfDescription" rows="5" required>${escapeHtml(formData.selfDescription || '')}</textarea>
+          <label for="selfDescription">Event description <span aria-hidden="true">*</span></label>
+          <textarea id="selfDescription" name="selfDescription" rows="5" maxlength="5000" placeholder="A short description from the event website. Markdown is supported." required>${escapeHtml(formData.selfDescription || '')}</textarea>
         </div>
         <div class="form-group">
           <label for="presentationForm">Presentation Form:</label>
@@ -383,7 +334,7 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
           <input type="date" id="cfpDeadline" name="cfpDeadline">
         </div>
         <div class="form-group">
-          <label for="participationFee">Standard Participation Fee (Rs):</label>
+          <label for="participationFee">Participation fee (INR)</label>
           <input type="number" id="participationFee" name="participationFee" placeholder="fee in Rs">
         </div>
         <div class="form-group">
@@ -407,8 +358,8 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
           <input type="text" id="officialHashtags" name="officialHashtags" maxlength="80">
         </div>
         <div class="form-group">
-          <label for="pictureBanner">Picture/Banner:</label>
-          <input type="file" id="pictureBanner" name="pictureBanner" accept="image/*">
+          <label for="pictureBanner">Event banner (optional)</label>
+          <input type="file" id="pictureBanner" name="pictureBanner" accept="image/png,image/jpeg,image/webp">
         </div>
         <div class="form-group">
           <label>Type:</label>
@@ -424,12 +375,12 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
           </div>
         </div>
         <div class="form-group">
-          <label for="tags">Tags:</label>
-          <textarea id="tags" name="tags" rows="10"></textarea>
+          <label for="tags">Topics and tags</label>
+          <textarea id="tags" name="tags" rows="3" placeholder="e.g. Linux, privacy, Python, open hardware"></textarea>
         </div>
         <div class="form-group">
-          <label for="mainSponsor">Main Sponsor:</label>
-          <textarea id="mainSponsor" name="mainSponsor" rows="10"></textarea>
+          <label for="mainSponsor">Main sponsor</label>
+          <textarea id="mainSponsor" name="mainSponsor" rows="2" placeholder="Optional"></textarea>
         </div>
         <div class="social-accounts">
           <h3>Social Accounts</h3>
