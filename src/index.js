@@ -322,12 +322,12 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
 
   ${showForm ? `
   <div class="event-form">
-    <div class="form-intro"><p class="eyebrow">Community submissions</p><h2>Share a FOSS event</h2><p>Help people across India find conferences, meetups, workshops and hackathons. Add the details below; submissions are reviewed before they appear in the calendar.</p><div class="form-progress">Fields marked * are required · Usually takes a few minutes</div></div>
+    <div class="form-intro"><p class="eyebrow">Community submissions</p><h2>Share a FOSS event</h2><p>Help people across India find conferences, meetups, workshops and hackathons. Add the details below; submissions are reviewed before they appear in the calendar.</p><div class="form-progress">Start with the essentials · Expand optional details when needed</div></div>
     ${notice ? `<div class="success-message" role="status">${escapeHtml(notice)}</div>` : ''}
     ${error ? `<div class="error-message" role="alert">${escapeHtml(error)}</div>` : ''}
     <form id="submitForm" method="POST" enctype="multipart/form-data">
       <fieldset>
-        <legend>Mandatory Data</legend>
+        <legend>Event essentials</legend>
         <div class="form-group">
           <label for="commonName">Event name <span aria-hidden="true">*</span></label>
           <input type="text" id="commonName" name="commonName" maxlength="40" placeholder="e.g. FOSS United Conference" value="${escapeHtml(formData.commonName || '')}" autocomplete="organization" required>
@@ -363,8 +363,9 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
         </div>
       </fieldset>
 
+      <details class="form-extra"><summary>Location, registration &amp; organiser details</summary><p>Optional details help attendees plan their visit.</p>
       <fieldset>
-        <legend>Optional Information</legend>
+        <legend>Place &amp; participation</legend>
         <div class="form-group">
           <label for="city">City (Location):</label>
           <input type="text" id="city" name="city" placeholder="e.g. Bangalore">
@@ -451,16 +452,15 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
         </div>
       </fieldset>
 
+      </details>
+      <details class="form-extra"><summary>Topics, links &amp; community information</summary><p>Add tags and useful links to make this event easier to discover.</p>
       <fieldset>
-        <legend>Additional Optional Information</legend>
+        <legend>More ways to connect</legend>
         <div class="form-group">
           <label for="officialHashtags">Official Hashtag(s):</label>
           <input type="text" id="officialHashtags" name="officialHashtags" maxlength="80">
         </div>
-        <div class="form-group">
-          <label for="pictureBanner">Event banner (optional)</label>
-          <input type="file" id="pictureBanner" name="pictureBanner" accept="image/png,image/jpeg,image/webp">
-        </div>
+
         <div class="form-group">
           <label>Type:</label>
           <div class="checkbox-group">
@@ -515,6 +515,7 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
         </div>
       </fieldset>
 
+      </details>
       <div class="form-group"><label for="trustedToken">Trusted contributor token (optional)</label><input type="password" id="trustedToken" name="trustedToken" autocomplete="off" placeholder="Only if issued by FOSSTrak maintainers"><p style="font-size:.82rem;color:#66736a">Trusted tokens can publish within their assigned permissions. Never share them.</p></div>
       <button type="submit" class="submit-btn">Submit Event</button>
     </form>
@@ -627,7 +628,12 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
       document.getElementById('upcomingLink')?.setAttribute('aria-current',hash==='past'?'false':'page');
       document.getElementById('pastLink')?.setAttribute('aria-current',hash==='past'?'page':'false');
     }
-    document.getElementById('eventSearch')?.addEventListener('input', filterEvents);
+    const submitForm=document.getElementById('submitForm');
+    submitForm?.addEventListener('invalid',(event)=>{
+      const group=event.target.closest('details');
+      if(group) group.open=true;
+    },true);
+        document.getElementById('eventSearch')?.addEventListener('input', filterEvents);
     document.getElementById('clearFilters')?.addEventListener('click',()=>{document.getElementById('eventSearch').value='';document.getElementById('stateFilter').value='';document.getElementById('typeFilter').value='';document.getElementById('startDate').value='';document.getElementById('endDate').value='';filterEvents();document.getElementById('eventSearch').focus();});
     document.getElementById('stateFilter')?.addEventListener('change', filterEvents);
     document.getElementById('typeFilter')?.addEventListener('change', filterEvents);
