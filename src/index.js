@@ -525,8 +525,9 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
   </div>
   `}
   <footer class="footer">
-    <p>FOSSTrak India - Part of the global FOSS movement</p>
-    <p>Powered by Open Source & Cloudflare Workers</p>
+    <p>Made with love for FOSS in India 🇮🇳</p>
+    <p>FOSSTrak India · Open source, community-driven, India-focused</p>
+    <p>Powered by Open Source &amp; Cloudflare Workers</p>
   </footer>
   <script>
     document.querySelectorAll('.nav-link').forEach(link => {
