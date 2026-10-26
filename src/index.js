@@ -208,17 +208,116 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
       .date-range span { align-self: center; }
     }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
+
+    /* Editorial discovery system: a calm directory, not a dashboard */
+    :root {
+      --ink:#19231f; --muted:#68756c; --paper:#f8f9f5; --surface:#fff;
+      --line:#e1e7df; --green:#1c5b41; --green-dark:#11452f;
+      --green-pale:#edf4ee; --orange:#bf6842; --shadow:none;
+    }
+    body {font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:-.008em;}
+    a {transition:color .18s ease;}
+    :focus-visible {outline:3px solid #7aaa8e;outline-offset:3px;}
+    .header {padding:25px 0 15px;background:var(--paper);border:0;}
+    .header-inner {width:min(100% - 48px,1120px);margin:auto;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+    .header h1,.header p {width:auto;margin:0;}
+    .header h1 {font-size:1.24rem;letter-spacing:-.065em;font-weight:850;}
+    .header h1 a {color:var(--ink);text-decoration:none;}
+    .header h1 a::before {content:"✳";color:var(--green);margin-right:10px;font-size:1.28rem;}
+    .header p {font-size:.8rem;letter-spacing:.025em;}
+    .nav {width:min(100% - 48px,1120px);padding:13px 0 19px;gap:8px;align-items:center;}
+    .nav a {border-radius:999px;padding:8px 17px;min-height:40px;font-size:.87rem;}
+    .nav a[aria-current="page"] {background:#e6eee7;color:var(--green-dark);font-weight:720;}
+    .nav a[href="/submit"] {padding:9px 18px;font-weight:720;}
+    .directory-intro {width:min(100% - 48px,1120px);margin:28px auto 23px;display:flex;align-items:end;justify-content:space-between;gap:28px;}
+    .directory-intro .kicker {font-size:.74rem;text-transform:uppercase;letter-spacing:.13em;font-weight:800;color:var(--green);margin:0 0 11px;}
+    .directory-intro h2 {font-size:clamp(2.5rem,6vw,4.6rem);font-weight:780;letter-spacing:-.075em;line-height:1.03;margin:0;}
+    .directory-intro h2 em {font-style:normal;color:var(--green);}
+    .directory-intro .intro-note {max-width:280px;margin:0 0 5px;color:var(--muted);font-size:.95rem;line-height:1.65;}
+    .filters {width:min(100% - 48px,1120px);margin:0 auto;padding:18px;background:var(--surface);border-radius:12px;}
+    .filter-search {display:flex;align-items:center;gap:12px;margin-bottom:15px;}
+    .filter-search input {font-size:1rem;min-height:49px;border-radius:7px;padding:12px 15px;}
+    .filter-search input::-webkit-search-cancel-button {cursor:pointer;}
+    .filter-search label {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);}
+    .filter-group {grid-template-columns:1fr 1fr 1.35fr;gap:12px;}
+    .filter-item label {font-size:.76rem;font-weight:700;letter-spacing:.02em;}
+    .filter-item select,.filter-item input {border-radius:6px;min-height:42px;}
+    .directory-toolbar {width:min(100% - 48px,1120px);margin:27px auto 12px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+    .directory-toolbar p {margin:0;font-size:.87rem;color:var(--muted);}
+    .directory-toolbar strong {color:var(--ink);}
+    .directory-toolbar button {border:0;background:transparent;color:var(--green);padding:5px 7px;min-height:32px;font-size:.84rem;}
+    .directory-toolbar button:hover {background:var(--green-pale);color:var(--green-dark);}
+    .events-container {width:min(100% - 48px,1120px);padding:0 0 70px;display:grid;gap:0;}
+    .event-card {position:relative;display:grid;grid-template-columns:110px minmax(0,1fr);column-gap:25px;align-items:start;padding:26px 10px;margin:0;background:transparent;border:0;border-top:1px solid var(--line);border-radius:0;transition:background .2s ease;}
+    .event-card:hover {background:#f1f5ee;}
+    .event-card .event-date {grid-column:1;grid-row:1/span 6;margin-top:4px;display:flex;flex-direction:column;gap:2px;line-height:1.15;color:var(--ink);}
+    .event-date .date-day {font-size:2.55rem;letter-spacing:-.07em;font-weight:780;}
+    .event-date .date-month {font-size:.74rem;letter-spacing:.09em;text-transform:uppercase;font-weight:800;color:var(--green);}
+    .event-date .date-year {font-size:.76rem;color:var(--muted);font-weight:500;}
+    .event-card h2 {grid-column:2;font-size:clamp(1.24rem,2.3vw,1.55rem);font-weight:740;letter-spacing:-.045em;margin:0 0 5px;line-height:1.24;}
+    .event-location {grid-column:2;font-size:.86rem;margin:0 0 7px;color:var(--muted);}
+    .event-card>p {grid-column:2;max-width:72ch;margin:5px 0;font-size:.9rem;color:#526057;line-height:1.55;}
+    .event-card .event-summary {display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+    .event-tags {grid-column:2;gap:6px;margin:10px 0 7px;}
+    .tag {background:#e8efe8;border:1px solid #dbe6db;border-radius:999px;padding:3px 10px;font-size:.74rem;font-weight:600;}
+    .event-card .event-links {grid-column:2;display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;margin-top:7px;}
+    .event-card .event-links a {font-size:.83rem;font-weight:700;text-decoration:none;}
+    .event-card .event-links a:hover {text-decoration:underline;}
+    .event-card .event-contribute {grid-column:2;margin-top:13px;font-size:.76rem;color:var(--muted);}
+    .event-contribute a {color:var(--muted);text-decoration:none;}
+    .event-contribute a:hover {color:var(--green);text-decoration:underline;}
+    .filter-empty {display:none;grid-column:1/-1;padding:64px 12px;text-align:center;border-top:1px solid var(--line);}
+    .filter-empty h3 {margin:0 0 6px;font-size:1.2rem;letter-spacing:-.03em;}
+    .filter-empty p {margin:0;color:var(--muted);}
+    .empty-state {grid-column:1/-1;}
+    .event-form {width:min(100% - 48px,920px);border-radius:12px;padding:clamp(22px,5vw,45px);margin-top:26px;}
+    .form-intro {margin-bottom:34px;}
+    .form-intro h2 {font-size:clamp(2rem,5vw,3.2rem);letter-spacing:-.07em;}
+    .form-progress {font-size:.84rem;}
+    .event-form fieldset {border:0;border-top:1px solid var(--line);padding:25px 0 15px;gap:18px 22px;margin-bottom:12px;border-radius:0;}
+    .event-form legend {padding:0 14px 0 0;font-size:1.02rem;letter-spacing:-.03em;}
+    .event-form input,.event-form select,.event-form textarea {border-radius:6px;background:#fdfefd;}
+    .event-form label {font-size:.82rem;}
+    .event-form .submit-btn {min-width:180px;border-radius:6px;}
+    .form-extra {border-top:1px solid var(--line);padding-top:17px;margin:6px 0 20px;}
+    .form-extra summary {cursor:pointer;list-style:none;font-size:.94rem;font-weight:750;color:var(--green);}
+    .form-extra summary::-webkit-details-marker {display:none;}
+    .form-extra summary::after {content:" +";font-weight:800;}
+    .form-extra[open] summary::after {content:" −";}
+    .form-extra p {font-size:.82rem;color:var(--muted);}
+    .footer {background:#f0f3ed;padding:35px 24px;line-height:1.8;}
+    @media(max-width:680px){
+      .header-inner,.nav,.directory-intro,.filters,.directory-toolbar,.events-container,.event-form {width:calc(100% - 30px);}
+      .header-inner {align-items:flex-start;flex-direction:column;gap:3px;}
+      .header {padding:18px 0 5px;}
+      .nav {padding:12px 0;flex-wrap:wrap;}
+      .nav a {padding:7px 12px;}
+      .nav a[href="/submit"] {margin-left:auto;}
+      .directory-intro {margin:24px auto 19px;display:block;}
+      .directory-intro h2 {font-size:2.9rem;}
+      .directory-intro .intro-note {margin-top:15px;max-width:42ch;}
+      .filters {padding:14px;}
+      .filter-group {grid-template-columns:1fr 1fr;}
+      .filter-item:last-child {grid-column:1/-1;}
+      .directory-toolbar {margin-top:21px;}
+      .event-card {grid-template-columns:60px minmax(0,1fr);column-gap:15px;padding:22px 0;}
+      .event-date .date-day {font-size:2.1rem;}
+      .event-card h2 {font-size:1.23rem;}
+      .event-card .event-links {gap:9px 15px;}
+      .event-form {padding:24px 18px;}
+      .event-form fieldset {padding:20px 0 12px;}
+    }
+    @media(prefers-reduced-motion:reduce){.event-card{transition:none;}}
   </style>
 </head>
 <body class="container">
   <header class="header">
-    <h1>FOSSTrak India</h1>
-    <p>Open Source Events in India</p>
+    <div class="header-inner"><h1><a href="/">FOSSTrak<span style="color:var(--green)">.</span> India</a></h1><p>An open directory for open communities</p></div>
   </header>
   <nav class="nav">
-    <a href="/" class="nav-link">Upcoming</a>
-    <a href="/#past" class="nav-link">Past Events</a>
-    <a href="/submit" class="nav-link">Submit Event</a>
+    <a href="/" class="nav-link" id="upcomingLink">Upcoming</a>
+    <a href="/#past" class="nav-link" id="pastLink">Past events</a>
+    <a href="/submit" class="nav-link">+ Add an event</a>
   </nav>
 
   ${showForm ? `
@@ -421,7 +520,9 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
     </form>
   </div>
   ` : `
-  <div class="filters">
+  <section class="directory-intro" aria-labelledby="directory-title"><div><p class="kicker">The open-source event index</p><h2 id="directory-title">Find your <em>people.</em></h2></div><p class="intro-note">Discover conferences, meetups, hackathons and communities building in the open, across India.</p></section>
+  <div class="filters" role="search">
+    <div class="filter-search"><label for="eventSearch">Search events</label><input type="search" id="eventSearch" placeholder="Search events, cities, topics…" autocomplete="off" aria-label="Search events"></div>
     <div class="filter-group">
       <div class="filter-item">
         <label>State</label>
@@ -447,17 +548,16 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
       </div>
     </div>
   </div>
+  <div class="directory-toolbar"><p id="resultCount" role="status" aria-live="polite">Browse upcoming events</p><button type="button" id="clearFilters" hidden>Clear filters ×</button></div>
   <div class="events-container" id="eventsList">
     ${events.length > 0 ? events.map(event => `
-      <article class="event-card" data-date="${escapeHtml(eventDate(event))}" data-state="${escapeHtml(event.state || '')}" data-type="${escapeHtml(eventType(event))}">
-        <div class="event-date">${eventDate(event) && validDate(eventDate(event)) ? new Date(eventDate(event) + 'T00:00:00+05:30').toLocaleDateString('en-IN', { dateStyle: 'long', timeZone: 'Asia/Kolkata' }) : 'Date to be announced'}</div>
+      <article class="event-card" data-date="${escapeHtml(eventDate(event))}" data-state="${escapeHtml(event.state || '')}" data-type="${escapeHtml(eventType(event))}" data-search="${escapeHtml([eventName(event),eventDescription(event),eventLocation(event),eventType(event),...eventTags(event)].join(" ").toLocaleLowerCase("en-IN"))}">
+        <div class="event-date" aria-label="${eventDate(event) && validDate(eventDate(event)) ? new Date(eventDate(event)+'T00:00:00+05:30').toLocaleDateString('en-IN',{dateStyle:'long',timeZone:'Asia/Kolkata'}) : 'Date to be announced'}">${eventDate(event) && validDate(eventDate(event)) ? `<span class="date-day">${new Date(eventDate(event)+'T00:00:00+05:30').toLocaleDateString('en-IN',{day:'2-digit',timeZone:'Asia/Kolkata'})}</span><span class="date-month">${new Date(eventDate(event)+'T00:00:00+05:30').toLocaleDateString('en-IN',{month:'short',timeZone:'Asia/Kolkata'})}</span><span class="date-year">${new Date(eventDate(event)+'T00:00:00+05:30').toLocaleDateString('en-IN',{year:'numeric',timeZone:'Asia/Kolkata'})}</span>` : '<span class="date-month">TBA</span>'}</div>
         <h2>${escapeHtml(eventName(event))}</h2>
         <div class="event-location">${escapeHtml(eventLocation(event))}</div>
-        <p>${escapeHtml(eventDescription(event))}</p>
+        <p class="event-summary">${escapeHtml(eventDescription(event))}</p>
         <div class="event-tags"><span class="tag">${escapeHtml(eventType(event))}</span>${eventTags(event).map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}</div>
-        ${safeUrl(event.homepage) ? `<p><a href="${escapeHtml(safeUrl(event.homepage))}" target="_blank" rel="noopener noreferrer">Event website ↗</a></p>` : ''}
-        ${safeUrl(event.registrationLink) ? `<p><a href="${escapeHtml(safeUrl(event.registrationLink))}" target="_blank" rel="noopener noreferrer">Registration ↗</a></p>` : ''}
-        ${eventDate(event) && validDate(eventDate(event)) ? `<p><a href="/events/${encodeURIComponent(event.id || eventName(event))}.ics">Add to calendar (.ics)</a></p>` : ''}
+        <div class="event-links">${safeUrl(event.homepage) ? `<a href="${escapeHtml(safeUrl(event.homepage))}" target="_blank" rel="noopener noreferrer">Website ↗</a>` : ''}${safeUrl(event.registrationLink) ? `<a href="${escapeHtml(safeUrl(event.registrationLink))}" target="_blank" rel="noopener noreferrer">Register ↗</a>` : ''}${eventDate(event) && validDate(eventDate(event)) ? `<a href="/events/${encodeURIComponent(event.id || eventName(event))}.ics">Add to calendar ↓</a>` : ''}</div>
         ${event.id ? `<p class="event-contribute"><a href="/contribute/edit/${encodeURIComponent(event.id)}">Suggest an edit</a> · <a href="/events/${encodeURIComponent(event.id)}/new-edition">Add a new edition</a> · <a href="/report/${encodeURIComponent(event.id)}">Report an issue</a></p>` : ''}
       </article>
     `).join('') : `
@@ -477,6 +577,7 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
         </div>
       </div>
     `}
+    <div class="filter-empty" id="filterEmpty"><h3>No matching events</h3><p>Try another search or clear the filters.</p></div>
   </div>
   `}
   <footer class="footer">
@@ -496,30 +597,38 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
       });
     });
     function filterEvents() {
-      const hash = window.location.hash.substring(1);
-      const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-      document.querySelectorAll('.event-card').forEach(card => {
-        if (!card.dataset.date) { card.style.display = hash === 'past' ? 'none' : 'block'; return; }
-        const eventDate = card.dataset.date;
-        const isPast = eventDate < today;
-        const stateFilter = document.getElementById('stateFilter');
-        const typeFilter = document.getElementById('typeFilter');
-        const startInput = document.getElementById('startDate');
-        const endInput = document.getElementById('endDate');
-        const stateMatch = !stateFilter || !stateFilter.value || card.dataset.state === stateFilter.value;
-        const typeMatch = !typeFilter || !typeFilter.value || card.dataset.type === typeFilter.value;
-        const startDate = startInput ? startInput.value : '';
-        const endDate = endInput ? endInput.value : '';
-        const dateInRange = (!startDate || eventDate >= startDate) &&
-                            (!endDate || eventDate <= endDate);
-        const shouldShow = dateInRange && stateMatch && typeMatch && (
-          (hash === 'past' && isPast) ||
-          (hash === 'upcoming' && !isPast) ||
-          (!hash && !isPast)
-        );
-        card.style.display = shouldShow ? 'block' : 'none';
+      const hash=window.location.hash.substring(1);
+      const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+      const search=document.getElementById('eventSearch')?.value.trim().toLocaleLowerCase('en-IN') || '';
+      const state=document.getElementById('stateFilter')?.value || '';
+      const type=document.getElementById('typeFilter')?.value || '';
+      const start=document.getElementById('startDate')?.value || '';
+      const end=document.getElementById('endDate')?.value || '';
+      let visible=0;
+      const cards=document.querySelectorAll('.event-card');
+      cards.forEach(card=>{
+        const date=card.dataset.date || '';
+        const matchesSearch=!search || (card.dataset.search||'').includes(search);
+        const matchesState=!state || card.dataset.state===state;
+        const matchesType=!type || card.dataset.type===type;
+        const matchesDate=(!start||date>=start)&&(!end||date<=end);
+        const matchesPeriod=hash==='past' ? !!date&&date<today : !date||date>=today;
+        const show=matchesSearch&&matchesState&&matchesType&&matchesDate&&matchesPeriod;
+        card.hidden=!show;
+        card.style.display=show?'':'none';
+        if(show) visible++;
       });
+      const count=document.getElementById('resultCount');
+      if(count) count.innerHTML='<strong>'+visible+'</strong> '+(visible===1?'event':'events')+' · '+(hash==='past'?'Past':'Upcoming');
+      const clear=document.getElementById('clearFilters');
+      if(clear) clear.hidden=!(search||state||type||start||end);
+      const empty=document.getElementById('filterEmpty');
+      if(empty) empty.style.display=cards.length&&visible===0?'block':'none';
+      document.getElementById('upcomingLink')?.setAttribute('aria-current',hash==='past'?'false':'page');
+      document.getElementById('pastLink')?.setAttribute('aria-current',hash==='past'?'page':'false');
     }
+    document.getElementById('eventSearch')?.addEventListener('input', filterEvents);
+    document.getElementById('clearFilters')?.addEventListener('click',()=>{document.getElementById('eventSearch').value='';document.getElementById('stateFilter').value='';document.getElementById('typeFilter').value='';document.getElementById('startDate').value='';document.getElementById('endDate').value='';filterEvents();document.getElementById('eventSearch').focus();});
     document.getElementById('stateFilter')?.addEventListener('change', filterEvents);
     document.getElementById('typeFilter')?.addEventListener('change', filterEvents);
     document.getElementById('startDate')?.addEventListener('change', filterEvents);
