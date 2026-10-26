@@ -474,18 +474,13 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
         <label>State</label>
         <select id="stateFilter">
           <option value="">All States</option>
-          ${events.length ? [...new Set(events.flatMap(event => {
-	const parts = event.location.split(', ');
-	return parts.length > 1 ? [parts[1].trim()] : [];
-}))].map(state => `<option value="${state}">${state}</option>`).join('') : ''}
-        </select>
+          ${events.length ? [...new Set(events.map(event => event.state).filter(Boolean))].sort().map(state => `<option value="${escapeHtml(state)}">${escapeHtml(state)}</option>`).join('') : ''}        </select>
       </div>
       <div class="filter-item">
         <label>Type</label>
         <select id="typeFilter">
           <option value="">All Types</option>
-          ${events.length ? [...new Set(events.map(event => event.type))].map(type => `<option value="${type}">${type}</option>`).join('') : ''}
-        </select>
+          ${events.length ? [...new Set(events.map(eventType))].sort().map(type => `<option value="${escapeHtml(type)}">${escapeHtml(type)}</option>`).join('') : ''}        </select>
       </div>
       <div class="filter-item">
         <label>Date Range</label>
