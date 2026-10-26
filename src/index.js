@@ -1,4 +1,4 @@
-import { handleContributionRoutes } from './contributions.js';
+import { handleContributionRoutes, trustedScopes, writeAudit } from './contributions.js';
 const escapeHtml = (value = '') => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 const safeUrl = (value) => { try { const url = new URL(String(value || '')); return ['http:', 'https:'].includes(url.protocol) ? url.href : ''; } catch { return ''; } };
 const eventName = (e) => e.commonName || e.name || e.fullName || 'Untitled FOSS event';
@@ -416,6 +416,7 @@ const HTML_TEMPLATE = (events, showForm = false, error = null, formData = {}, no
         </div>
       </fieldset>
 
+      <div class="form-group"><label for="trustedToken">Trusted contributor token (optional)</label><input type="password" id="trustedToken" name="trustedToken" autocomplete="off" placeholder="Only if issued by FOSSTrak maintainers"><p style="font-size:.82rem;color:#66736a">Trusted tokens can publish within their assigned permissions. Never share them.</p></div>
       <button type="submit" class="submit-btn">Submit Event</button>
     </form>
   </div>
@@ -602,11 +603,13 @@ export default {
       const lat=event.latitude===''?null:Number(event.latitude), lng=event.longitude===''?null:Number(event.longitude);
       if((lat!==null&&(!Number.isFinite(lat)||lat< -90||lat>90))||(lng!==null&&(!Number.isFinite(lng)||lng< -180||lng>180))) errors.push('Latitude must be between -90 and 90 and longitude between -180 and 180.');
       if(errors.length) return new Response(HTML_TEMPLATE([],true,errors.join(' '),event),{status:400,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
-      const duplicate=events.some(row=>String(row.commonName||row.name||'').trim().toLocaleLowerCase('en-IN')===event.commonName.toLocaleLowerCase('en-IN')&&String(row.startDate||row.date||'')===event.startDate);
+      const scopes = await trustedScopes(field('trustedToken',500), env);
+      if (scopes.includes('publish_events')) { event.status = 'published'; event.publishedAt = new Date().toISOString(); }
+      const duplicate=events.some(row=>!row.proposalType&&row.status!=='rejected'&&String(row.commonName||row.name||'').trim().toLocaleLowerCase('en-IN')===event.commonName.toLocaleLowerCase('en-IN')&&String(row.startDate||row.date||'')===event.startDate);
       if(duplicate) return new Response(HTML_TEMPLATE([],true,'An event with this name and start date already exists.',event),{status:409,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
       events.push(event);
-      try { await env.EVENTS.put('events',JSON.stringify(events)); } catch { return new Response('We could not save your submission. Please try again later.',{status:503,headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}}); }
-      return new Response(HTML_TEMPLATE([],true,null,{},'Thanks! Your event has been submitted for community review.'),{status:202,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
+      try { await env.EVENTS.put('events',JSON.stringify(events)); await writeAudit(env,{action:scopes.includes('publish_events')?'trusted-event-published':'proposal-submitted',targetId:event.id,summary:'new-event',actor:scopes.includes('publish_events')?'trusted-contributor':'community'}); } catch { return new Response('We could not save your submission. Please try again later.',{status:503,headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}}); }
+      return new Response(HTML_TEMPLATE([],true,null,{},scopes.includes('publish_events')?'Your trusted-contributor submission is published.':'Thanks! Your event has been submitted for community review.'),{status:scopes.includes('publish_events')?201:202,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
     }
     if(request.method==='GET'&&path==='/submit') return new Response(HTML_TEMPLATE([],true),{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
     if(request.method==='GET'&&path==='/api/events') return Response.json(events.filter(row=>!row.proposalType&&!['pending','rejected','changes-requested'].includes(row.status)),{headers:{'Cache-Control':'public, max-age=60'}});
