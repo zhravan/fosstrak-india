@@ -4,8 +4,7 @@ const eventName = (e) => e.commonName || e.name || e.fullName || 'Untitled FOSS 
 const eventDate = (e) => e.startDate || e.date || '';
 const eventLocation = (e) => [e.venue, e.city, e.state, e.location].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).join(', ') || (e.presentationForm === 'online' ? 'Online' : 'Location to be announced');
 const eventType = (e) => Array.isArray(e.eventTypes) && e.eventTypes.length ? e.eventTypes.join(', ') : e.type || e.presentationForm || 'FOSS event';
-const eventTags = (e) => Array.isArray(e.tags) ? e.tags : typeof e.tags === 'string' ? e.tags.split(/[ ,
-]/).map(v=>v.trim()).filter(Boolean) : [];
+const eventTags = (e) => Array.isArray(e.tags) ? e.tags : typeof e.tags === 'string' ? e.tags.split(/[,\n]/).map(v=>v.trim()).filter(Boolean) : [];
 const eventDescription = (e) => e.selfDescription || e.description || e.shortDescription || '';
 const readEvents = async (env) => { if (!env.EVENTS) return []; const rows = await env.EVENTS.get('events','json'); return Array.isArray(rows) ? rows.filter(row=>row && typeof row === 'object') : []; };
 const validDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) && !Number.isNaN(Date.parse(value));
