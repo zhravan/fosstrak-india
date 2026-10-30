@@ -140,7 +140,7 @@ const createProposal = async (request, env, type, targetId = '') => {
 };
 export async function handleContributionRoutes(request, env, url, existingEvents) {
   const path = url.pathname;
-  if(request.method==='POST' && path==='/submit' && await rateLimited(request,env)) return html('<h1>Slow down a moment</h1><p>Too many contributions from this connection. Please try again in about an hour.</p>',429,{'Retry-After':'3600'});
+  if(request.method==='POST' && (path==='/submit' || path==='/api/events') && await rateLimited(request,env)) return html('<h1>Slow down a moment</h1><p>Too many contributions from this connection. Please try again in about an hour.</p>',429,{'Retry-After':'3600'});
   if(request.method==='POST' && (path==='/report' || path.startsWith('/report/') || path.startsWith('/contribute/edit/') || (path.startsWith('/events/') && path.endsWith('/new-edition') || path.startsWith('/contributions/') && path.endsWith('/revise'))) && await rateLimited(request,env)) return html('<h1>Slow down a moment</h1><p>Too many contributions from this connection. Please try again in about an hour.</p>',429,{'Retry-After':'3600'});
   if (request.method==='GET' && path==='/admin') {
     const denied=adminGate(request,env); if(denied) return denied;
