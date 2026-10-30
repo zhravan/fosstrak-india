@@ -33,6 +33,23 @@ describe('FOSSTrak India Worker', () => {
   const env=createEnv(); const response=await worker.fetch(new Request('https://example.com/submit',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:submitBody()}),env);
   expect(response.status).toBe(202); expect(env.store.events).toHaveLength(1); expect(env.store.events[0].status).toBe('pending'); expect(env.store.events[0].city).toBe('Bengaluru');
  });
+ it('accepts JSON submissions through the public events API', async () => {
+  const env=createEnv();
+  const payload={commonName:'FOSS API Meetup',fullName:'FOSS API Community Meetup',homepage:'https://example.org/api-meetup',startDate:'2027-03-10',endDate:'2027-03-10',selfDescription:'A meetup submitted using the JSON API.',presentationForm:'hybrid',city:'Bengaluru',state:'Karnataka',eventTypes:['meetup','workshop']};
+  const response=await worker.fetch(new Request('https://example.com/api/events',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),env);
+  const result=await response.json();
+  expect(response.status).toBe(202);
+  expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+  expect(result.status).toBe('pending');
+  expect(result.id).toBeTruthy();
+  expect(result.statusUrl).toContain(result.id);
+  expect(env.store.events[0].eventTypes).toEqual(['meetup','workshop']);
+ });
+ it('answers CORS preflight for the public events API', async () => {
+  const response=await worker.fetch(new Request('https://example.com/api/events',{method:'OPTIONS'}),{});
+  expect(response.status).toBe(204);
+  expect(response.headers.get('Access-Control-Allow-Methods')).toContain('POST');
+ });
  it('rejects invalid date ranges', async () => {
   const env=createEnv(); const response=await worker.fetch(new Request('https://example.com/submit',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:submitBody({startDate:'2027-02-20',endDate:'2027-02-01'})}),env);
   expect(response.status).toBe(400); expect(env.store.events).toHaveLength(0);
