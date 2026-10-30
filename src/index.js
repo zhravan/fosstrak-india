@@ -735,6 +735,7 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
     if (request.method === 'GET' && path === '/healthz') return Response.json({ status: 'ok', service: 'fosstrak-india' }, { headers: { 'Cache-Control': 'no-store' } });
+    if (request.method === 'OPTIONS' && path === '/api/events') return new Response(null, { status: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Max-Age': '86400', 'Vary': 'Origin' } });
     let events;
     try { events = await readEvents(env); } catch {
       return new Response('Event data is temporarily unavailable. Please try again later.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });
@@ -781,7 +782,7 @@ export default {
     // the HTML form endpoint and expose the same moderated workflow at POST /api/events.
     if (request.method === 'POST' && (path === '/submit' || path === '/api/events')) {
       const wantsJson = path === '/api/events' || request.headers.get('Content-Type')?.toLowerCase().includes('application/json');
-      const jsonResponse = (payload, status) => Response.json(payload, { status, headers: { 'Cache-Control': 'no-store' } });
+      const jsonResponse = (payload, status) => Response.json(payload, { status, headers: { 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*', 'Vary': 'Origin' } });
       if (!env.EVENTS) return wantsJson ? jsonResponse({ error: 'Event submission is not configured yet.' }, 503) : new Response('Event submission is not configured yet.', { status: 503 });
       let form;
       try {
@@ -846,7 +847,7 @@ export default {
       return new Response(HTML_TEMPLATE([],true,null,{},scopes.includes('publish_events')?'Your trusted-contributor submission is published.':'Thanks! Your event has been submitted for community review.'),{status,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
     }
     if(request.method==='GET'&&path==='/submit') return new Response(HTML_TEMPLATE([],true),{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
-    if(request.method==='GET'&&path==='/api/events') return Response.json(events.filter(row=>!row.proposalType&&!['pending','rejected','changes-requested','archived'].includes(row.status)),{headers:{'Cache-Control':'public, max-age=60'}});
+    if(request.method==='GET'&&path==='/api/events') return Response.json(events.filter(row=>!row.proposalType&&!['pending','rejected','changes-requested','archived'].includes(row.status)),{headers:{'Cache-Control':'public, max-age=60','Access-Control-Allow-Origin':'*','Vary':'Origin'}});
     if(request.method!=='GET') return new Response('Method not allowed',{status:405,headers:{Allow:'GET, POST','Content-Type':'text/plain; charset=utf-8'}});
     const published=events.filter(row=>!row.proposalType&&!['pending','rejected','changes-requested','archived'].includes(row.status)); published.sort((a,b)=>eventDate(a).localeCompare(eventDate(b)));
     return new Response(HTML_TEMPLATE(published),{headers:{
