@@ -777,10 +777,30 @@ export default {
         },
       });
     }
-    if (request.method === 'POST' && path === '/submit') {
-      if (!env.EVENTS) return new Response('Event submission is not configured yet.', { status: 503 });
+    // Accept both browser form submissions and JSON API clients. Keep /submit as
+    // the HTML form endpoint and expose the same moderated workflow at POST /api/events.
+    if (request.method === 'POST' && (path === '/submit' || path === '/api/events')) {
+      const wantsJson = path === '/api/events' || request.headers.get('Content-Type')?.toLowerCase().includes('application/json');
+      const jsonResponse = (payload, status) => Response.json(payload, { status, headers: { 'Cache-Control': 'no-store' } });
+      if (!env.EVENTS) return wantsJson ? jsonResponse({ error: 'Event submission is not configured yet.' }, 503) : new Response('Event submission is not configured yet.', { status: 503 });
       let form;
-      try { form = await request.formData(); } catch { return new Response(HTML_TEMPLATE([], true, 'Please submit a valid event form.'), { status: 400, headers: { 'Content-Type': 'text/html; charset=utf-8' } }); }
+      try {
+        const contentType = request.headers.get('Content-Type') || '';
+        if (contentType.toLowerCase().includes('application/json')) {
+          const body = await request.json();
+          if (!body || typeof body !== 'object' || Array.isArray(body)) throw new TypeError('Expected a JSON object');
+          form = {
+            get: (key) => body[key] == null ? null : Array.isArray(body[key]) ? body[key][0] : body[key],
+            getAll: (key) => body[key] == null ? [] : Array.isArray(body[key]) ? body[key] : [body[key]]
+          };
+        } else {
+          form = await request.formData();
+        }
+      } catch {
+        return wantsJson
+          ? jsonResponse({ error: 'Send a valid JSON object or HTML form submission.' }, 400)
+          : new Response(HTML_TEMPLATE([], true, 'Please submit a valid event form.'), { status: 400, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
+      }
       const field = (key, max = 1000) => String(form.get(key) || '').trim().slice(0, max);
       const event = {
         id: crypto.randomUUID(), commonName: field('commonName',40), fullName: field('fullName',80), homepage: safeUrl(field('homepage',2048)),
@@ -803,14 +823,27 @@ export default {
       if(!['online','physical','hybrid'].includes(event.presentationForm)) errors.push('Choose online, physical, or hybrid.');
       const lat=event.latitude===''?null:Number(event.latitude), lng=event.longitude===''?null:Number(event.longitude);
       if((lat!==null&&(!Number.isFinite(lat)||lat< -90||lat>90))||(lng!==null&&(!Number.isFinite(lng)||lng< -180||lng>180))) errors.push('Latitude must be between -90 and 90 and longitude between -180 and 180.');
-      if(errors.length) return new Response(HTML_TEMPLATE([],true,errors.join(' '),event),{status:400,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
+      if(errors.length) return wantsJson
+        ? jsonResponse({ error: 'Validation failed.', details: errors }, 400)
+        : new Response(HTML_TEMPLATE([],true,errors.join(' '),event),{status:400,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
       const scopes = await trustedScopes(field('trustedToken',500), env);
       if (scopes.includes('publish_events')) { event.status = 'published'; event.publishedAt = new Date().toISOString(); }
       const duplicate=events.some(row=>!row.proposalType&&row.status!=='rejected'&&String(row.commonName||row.name||'').trim().toLocaleLowerCase('en-IN')===event.commonName.toLocaleLowerCase('en-IN')&&String(row.startDate||row.date||'')===event.startDate);
-      if(duplicate) return new Response(HTML_TEMPLATE([],true,'An event with this name and start date already exists.',event),{status:409,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
+      if(duplicate) return wantsJson
+        ? jsonResponse({ error: 'An event with this name and start date already exists.' }, 409)
+        : new Response(HTML_TEMPLATE([],true,'An event with this name and start date already exists.',event),{status:409,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
       events.push(event);
-      try { await env.EVENTS.put('events',JSON.stringify(events)); await writeAudit(env,{action:scopes.includes('publish_events')?'trusted-event-published':'proposal-submitted',targetId:event.id,summary:'new-event',actor:scopes.includes('publish_events')?'trusted-contributor':'community',...(scopes.includes('publish_events')?{after:JSON.parse(JSON.stringify(event))}:{})}); } catch { return new Response('We could not save your submission. Please try again later.',{status:503,headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}}); }
-      return new Response(HTML_TEMPLATE([],true,null,{},scopes.includes('publish_events')?'Your trusted-contributor submission is published.':'Thanks! Your event has been submitted for community review.'),{status:scopes.includes('publish_events')?201:202,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
+      try {
+        await env.EVENTS.put('events',JSON.stringify(events));
+        await writeAudit(env,{action:scopes.includes('publish_events')?'trusted-event-published':'proposal-submitted',targetId:event.id,summary:'new-event',actor:scopes.includes('publish_events')?'trusted-contributor':'community',...(scopes.includes('publish_events')?{after:JSON.parse(JSON.stringify(event))}:{})});
+      } catch {
+        return wantsJson
+          ? jsonResponse({ error: 'We could not save your submission. Please try again later.' }, 503)
+          : new Response('We could not save your submission. Please try again later.',{status:503,headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}});
+      }
+      const status = scopes.includes('publish_events') ? 201 : 202;
+      if (wantsJson) return jsonResponse({ id: event.id, status: event.status, message: scopes.includes('publish_events') ? 'Event published.' : 'Event submitted for community review.', statusUrl: `/contributions/${encodeURIComponent(event.id)}` }, status);
+      return new Response(HTML_TEMPLATE([],true,null,{},scopes.includes('publish_events')?'Your trusted-contributor submission is published.':'Thanks! Your event has been submitted for community review.'),{status,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
     }
     if(request.method==='GET'&&path==='/submit') return new Response(HTML_TEMPLATE([],true),{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
     if(request.method==='GET'&&path==='/api/events') return Response.json(events.filter(row=>!row.proposalType&&!['pending','rejected','changes-requested','archived'].includes(row.status)),{headers:{'Cache-Control':'public, max-age=60'}});
